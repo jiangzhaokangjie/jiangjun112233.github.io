@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>小学语文生字学习</title>
+<meta name="theme-color" content="#1d4ed8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="语文生字">
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --line:#334155; --txt:#e2e8f0; --muted:#94a3b8;
+    --blue:#1d4ed8; --red:#ef4444; --orange:#f59e0b; --green:#16a34a; --purple:#a855f7;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{font-family:"Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+  header{position:sticky;top:0;z-index:20;background:#111c33;border-bottom:1px solid var(--line);padding:10px 14px;display:flex;align-items:center;gap:10px}
+  header h1{font-size:16px;margin:0;flex:1}
+  header .ic{background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer}
+  .wrap{max-width:760px;margin:0 auto;padding:14px}
+  .tabs{display:flex;gap:8px;margin-bottom:10px}
+  .tabs button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:14px;cursor:pointer}
+  .tabs button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+  textarea{width:100%;min-height:96px;resize:vertical;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px;line-height:1.5}
+  .bar{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .bar button{padding:10px 14px;border-radius:10px;border:none;font-size:14px;cursor:pointer;background:var(--blue);color:#fff}
+  .bar button.ghost{background:var(--panel);color:var(--txt);border:1px solid var(--line)}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6}
+  .sent-hint{font-size:12.5px;color:var(--muted);background:#0f172a;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:0 12px 8px;line-height:1.6}
+  .sec-title{font-size:13px;color:var(--muted);margin:18px 0 8px;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+
+  /* 生字卡片 */
+  .wcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;text-align:center;transition:border-color .2s}
+  .wcard:hover{border-color:var(--blue)}
+  .wcard .char{font-size:42px;line-height:1.1;font-family:"KaiTi","STKaiti","SimSun",serif;color:#fde68a}
+  .wcard .py{font-size:14px;margin-top:4px;color:var(--orange);font-weight:600}
+  .wcard .ci{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;min-height:16px}
+  .wcard .card-btns{display:flex;gap:5px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+  .wcard .card-btns button{background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:4px 8px;font-size:11px;cursor:pointer}
+  .wcard .card-btns .btn-stroke{background:var(--purple);color:#fff;border-color:var(--purple)}
+  .wcard .card-btns .btn-read{background:var(--orange);color:#1a1205;border-color:var(--orange)}
+
+  /* 详情弹窗 */
+  .sheet{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:40;align-items:flex-end}
+  .sheet.show{display:flex}
+  .sheet .box{background:var(--bg);width:100%;max-width:760px;margin:0 auto;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
+  .sheet .top{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  .sheet .big-char{font-size:56px;font-family:"KaiTi","STKaiti","SimSun",serif;color:#fde68a;font-weight:700}
+  .sheet .close{margin-left:auto;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 12px;cursor:pointer}
+  .detail-py{text-align:center;font-size:22px;color:var(--orange);margin:8px 0;font-weight:600}
+  .detail-cn{text-align:center;color:var(--muted);font-size:14px;margin-bottom:10px}
+
+  /* 笔画动画区域 */
+  .stroke-area{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:10px 0}
+  .stroke-area .label{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .stroke-canvas-wrap{display:flex;justify-content:center;align-items:center;background:#fff;border-radius:10px;width:200px;height:200px;margin:0 auto;position:relative}
+  .stroke-canvas-wrap svg{width:200px;height:200px}
+  .stroke-canvas-wrap .grid-bg{position:absolute;inset:0;pointer-events:none;opacity:.15}
+  .stroke-controls{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+  .stroke-controls button{border:none;border-radius:10px;padding:10px 16px;font-size:14px;cursor:pointer}
+  .stroke-controls .play{background:var(--purple);color:#fff}
+  .stroke-controls .pause{background:var(--orange);color:#1a1205}
+  .stroke-controls .reset{background:var(--panel);color:var(--txt);border:1px solid var(--line)}
+  .stroke-info{font-size:13px;color:var(--muted);text-align:center;margin-top:8px;min-height:18px}
+  .stroke-order{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+  .stroke-order .s-name{background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:3px 8px;font-size:12px}
+  .stroke-order .s-name.active{background:var(--purple);color:#fff;border-color:var(--purple)}
+
+  /* 组词区域 */
+  .ci-area{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
+  .ci-area .label{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .ci-list{display:flex;gap:8px;flex-wrap:wrap}
+  .ci-list .ci-item{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:14px;cursor:pointer;transition:border-color .2s}
+  .ci-list .ci-item:hover{border-color:var(--blue)}
+  .ci-list .ci-item .ci-py{font-size:11px;color:var(--orange);display:block}
+
+  .actions{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;justify-content:center}
+  .actions button{border:none;border-radius:12px;padding:11px 16px;font-size:15px;cursor:pointer}
+  .actions .play{background:var(--orange);color:#1a1205;font-size:22px;width:58px;height:58px;border-radius:50%}
+  .actions .mini{background:var(--panel);color:var(--txt);border:1px solid var(--line)}
+
+  /* 句子分析 */
+  .sent{line-height:2.4;font-size:17px;word-break:break-word}
+  .sent .tok{display:inline-block;margin:0 2px;text-align:center;vertical-align:top}
+  .sent .tok .w{font-weight:600;font-family:"KaiTi","STKaiti","SimSun",serif;font-size:19px}
+  .sent .tok .meta{display:block;font-size:11px;color:var(--muted);font-weight:400}
+  .sent .tok .role{display:block;font-size:10px;padding:1px 5px;border-radius:6px;margin-top:1px}
+  .role.subj{background:#1e3a8a;color:#bfdbfe}
+  .role.pred{background:#14532d;color:#bbf7d0}
+  .role.obj{background:#78350f;color:#fde68a}
+  .role.attr{background:#581c87;color:#e9d5ff}
+  .role.advr{background:#0e7490;color:#a5f3fc}
+  .role.comp{background:#9d174d;color:#fbcfe8}
+  .role.other{background:#334155;color:#cbd5e1}
+  .tok.hard .w{color:var(--red)}
+  .tok.hard .meta{color:var(--red)}
+
+  /* 生字本 */
+  .wb{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:40;align-items:center;justify-content:center;padding:20px}
+  .wb.show{display:flex}
+  .wb .box{background:var(--bg);border-radius:16px;padding:18px;width:100%;max-width:520px;max-height:80vh;overflow:auto}
+  .wb .item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .wb .item .char{font-size:28px;font-family:"KaiTi","STKaiti","SimSun",serif;color:#fde68a}
+  .wb .item .py{color:var(--orange);font-size:13px;font-weight:600}
+  .wb .item .cn{color:var(--muted);font-size:13px}
+  .wb .item button{margin-left:auto;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:5px 10px;cursor:pointer}
+
+  /* 聊天 */
+  .fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:30;width:54px;height:54px;border-radius:50%;border:none;background:var(--blue);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+  .chat{position:fixed;left:0;right:0;bottom:0;z-index:35;background:var(--panel);border-top:1px solid var(--line);border-radius:16px 16px 0 0;display:none;flex-direction:column;max-height:78vh;max-width:760px;margin:0 auto}
+  .chat.show{display:flex}
+  .chat-hd{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .chat-hd .tt{font-size:14px;font-weight:600;flex:1}
+  .chat-hd .x{background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:4px 10px;cursor:pointer}
+  .chat-msgs{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:88%;padding:9px 12px;border-radius:12px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+  .msg.u{background:var(--blue);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .msg.a{background:var(--bg);color:var(--txt);align-self:flex-start;border-bottom-left-radius:4px;line-height:1.7}
+  .msg.sys{background:transparent;color:var(--muted);font-size:12px;align-self:center;text-align:center}
+  .msg.a .speak{display:inline-block;margin-top:6px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:3px 9px;font-size:12px;cursor:pointer;color:var(--txt)}
+  .msg.a .hd{font-weight:700;margin:6px 0 4px;color:#fbbf24}
+  .msg.a ul{margin:4px 0;padding-left:20px}
+  .msg.a li{margin:2px 0}
+  .msg.a b{color:#fde68a}
+  .tree{margin:10px 12px;padding:10px 12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;font-size:14.5px;line-height:1.8;color:var(--txt);overflow-x:auto}
+  .tree .hd{font-weight:700;color:#fbbf24;margin:2px 0 6px}
+  .tree .hd.h1{font-size:17px} .tree .hd.h2{font-size:16px} .tree .hd.h3{font-size:15px}
+  .tree ul{margin:3px 0;padding-left:18px;list-style:disc}
+  .tree li{margin:2px 0}
+  .tree b{color:#fde68a}
+  .chat-quick{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--line)}
+  .chat-quick button{background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer}
+  .chat-in{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--line);align-items:flex-end;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+  .chat-in textarea{flex:1;resize:none;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:13px;height:44px;max-height:120px;line-height:1.4}
+  .chat-in button{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:0 14px;height:44px;cursor:pointer;font-size:13px}
+  .chat-set{display:none;padding:12px;border-top:1px solid var(--line);flex-direction:column;gap:8px}
+  .chat-set.show{display:flex}
+  .chat-set label{font-size:12px;color:var(--muted)}
+  .chat-set input{background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:13px}
+  .chat-set .row{display:flex;gap:8px;align-items:center}
+  .chat-set .save{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer}
+  .chat-set .hint{font-size:11px;color:var(--muted)}
+  .gear{margin-left:4px;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:13px}
+
+  /* 礼花 */
+  @keyframes pulseRec{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  .confetti-canvas{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:9998}
+</style>
+</head>
+<body>
+<header>
+  <h1>小学语文生字学习</h1>
+  <button class="ic" id="openWb">📚 生字本</button>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button id="tabText" class="on">📄 生字 / 课文</button>
+    <button id="tabSent">✍️ 句子分析</button>
+  </div>
+  <textarea id="input" placeholder="粘贴或输入课文段落、生字或一句话…（语音可用输入法键盘的🎤说）"></textarea>
+  <div class="bar">
+    <button id="btnAnalyze">🔍 分析</button>
+    <button class="ghost" id="btnClear">🗑 清空</button>
+  </div>
+  <div class="hint">提示：输入课文或生字，自动提取生字并显示拼音、笔画笔顺动画和组词。语音输入请直接点输入框 → 切到搜狗等输入法 → 点键盘上的🎤说。</div>
+
+  <div class="sec-title" id="resultTitle" style="display:none"></div>
+  <div class="grid" id="wordGrid"></div>
+  <div id="sentenceOut"></div>
+</div>
+
+<!-- 生字详情 -->
+<div class="sheet" id="sheet">
+  <div class="box">
+    <div class="top">
+      <div class="big-char" id="dChar">字</div>
+      <button class="close" id="dClose">关闭</button>
+    </div>
+    <div class="detail-py" id="dPinyin">zì</div>
+    <div class="detail-cn" id="dCn">汉字</div>
+
+    <!-- 笔画笔顺动画 -->
+    <div class="stroke-area">
+      <div class="label">✏️ 笔画笔顺动画</div>
+      <div class="stroke-canvas-wrap" id="strokeWrap">
+        <svg class="grid-bg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <line x1="0" y1="100" x2="200" y2="100" stroke="#999" stroke-dasharray="4,4"/>
+          <line x1="100" y1="0" x2="100" y2="200" stroke="#999" stroke-dasharray="4,4"/>
+          <rect x="2" y="2" width="196" height="196" fill="none" stroke="#999" stroke-dasharray="4,4"/>
+        </svg>
+        <svg id="strokeSvg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="stroke-info" id="strokeInfo">点击 ▶️ 播放笔顺动画</div>
+      <div class="stroke-order" id="strokeOrder"></div>
+      <div class="stroke-controls">
+        <button class="play" id="strokePlay">▶️ 播放</button>
+        <button class="reset" id="strokeReset">🔄 重置</button>
+      </div>
+    </div>
+
+    <!-- 组词 -->
+    <div class="ci-area">
+      <div class="label">📖 组词</div>
+      <div class="ci-list" id="ciList"></div>
+    </div>
+
+    <div class="actions">
+      <button class="play" id="dPlay" title="朗读">▶️</button>
+      <button class="mini" id="dAdd">📌 加到生字本</button>
+      <button class="mini" id="dAsk">💬 问 AI</button>
+    </div>
+  </div>
+</div>
+
+<!-- 生字本 -->
+<div class="wb" id="wb">
+  <div class="box">
+    <div style="display:flex;align-items:center;margin-bottom:8px"><b style="flex:1">我的生字本</b><button class="close" id="wbClose" style="background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:4px 12px;cursor:pointer">关闭</button></div>
+    <div id="wbList"></div>
+  </div>
+</div>
+
+<button class="fab" id="chatFab">💬</button>
+<div class="chat" id="chat">
+  <div class="chat-hd">
+    <span class="tt">💬 互动讲解</span>
+    <button class="gear" id="chatGear">⚙</button>
+    <button class="x" id="chatClose">×</button>
+  </div>
+  <div class="chat-msgs" id="chatMsgs"></div>
+  <div class="chat-quick" id="chatQuick">
+    <button data-q="这个字怎么记最简单？给我一个顺口溜">🧠 怎么记</button>
+    <button data-q="用这个字组几个常用词并造句">📝 组词造句</button>
+    <button data-q="这个字容易写错哪里？">✍️ 易错点</button>
+    <button data-q="清空对话">🗑 清空</button>
+  </div>
+  <div class="chat-set" id="chatSet">
+    <label>API 地址（OpenAI 兼容，已预填 Agnes AI）</label>
+    <input id="setEndpoint" value="https://apihub.agnes-ai.com/v1/chat/completions">
+    <label>模型名（已预填 Agnes 文本模型）</label>
+    <input id="setModel" value="agnes-2.0-flash">
+    <label>API Key（仅存本地浏览器，不会上传；Agnes 可免费领）</label>
+    <input id="setKey" type="password" placeholder="在 platform.agnes-ai.com 创建 Key">
+    <div class="row"><button class="save" id="setSave">保存</button><span class="hint">没 Key？用 📋 复制提示词去 WorkBuddy 问</span></div>
+  </div>
+  <div class="chat-in">
+    <textarea id="chatInput" placeholder="不懂就问，比如：这个字的笔顺是什么？"></textarea>
+    <button id="chatSend">发送</button>
+  </div>
+</div>
+
+<script>
+/* ===================== 生字数据库（小学一二年级核心字） ===================== */
+/* 每个字包含: ch:汉字  py:拼音  cn:释义  strokes:笔画路径数组(SVG path d)  strokeNames:笔画名称数组  ci:组词数组 */
+const CHAR_DB = {
+  "我":{ch:"我",py:"wǒ",cn:"自己",strokes:[
+    "M 30,50 Q 40,30 55,35 Q 60,40 55,55 L 50,80",
+    "M 55,35 Q 70,30 80,40 L 75,60",
+    "M 40,70 Q 60,65 80,70 L 75,90",
+    "M 50,90 Q 70,85 90,90 L 85,110",
+    "M 35,110 Q 60,105 85,115 L 80,135",
+    "M 55,55 L 85,130",
+    "M 100,40 L 100,140"
+  ],strokeNames:["撇","横","竖钩","提","斜钩","撇","点"],ci:["我们","自我","我的"]},
+
+  "你":{ch:"你",py:"nǐ",cn:"第二人称",strokes:[
+    "M 50,30 Q 55,25 60,30 L 55,50",
+    "M 60,35 Q 75,30 85,40 L 80,55",
+    "M 70,50 L 70,150",
+    "M 60,80 Q 80,75 95,80 L 90,110",
+    "M 60,110 Q 85,105 100,115 L 95,140",
+    "M 70,80 L 95,140",
+    "M 80,80 L 100,140"
+  ],strokeNames:["撇","横撇","竖","撇","横撇","点","捺"],ci:["你好","你们","你的"]},
+
+  "他":{ch:"他",py:"tā",cn:"第三人称（男）",strokes:[
+    "M 40,30 Q 45,25 50,30 L 45,50",
+    "M 50,35 Q 65,30 75,40 L 70,55",
+    "M 60,50 L 60,160",
+    "M 60,80 Q 80,75 95,80 L 90,110",
+    "M 60,110 Q 85,105 100,115 L 95,140",
+    "M 70,80 L 100,140"
+  ],strokeNames:["撇","横撇","竖","撇","横折钩","竖"],ci:["他们","其他","他人"]},
+
+  "的":{ch:"的",py:"de",cn:"助词（表示所属）",strokes:[
+    "M 50,30 Q 55,25 60,30 L 55,50",
+    "M 60,35 Q 75,30 85,40 L 80,55",
+    "M 70,50 L 70,160",
+    "M 60,80 Q 90,70 100,90 Q 100,120 80,120 Q 65,110 70,90",
+    "M 110,50 Q 115,45 120,50 L 115,70",
+    "M 115,70 L 115,150",
+    "M 115,100 Q 130,95 140,105 L 135,135",
+    "M 115,100 L 140,150"
+  ],strokeNames:["撇","横撇","竖","横折","点","横折钩","点","点"],ci:["目的","你的","好的"]},
+
+  "了":{ch:"了",py:"le",cn:"助词（表示完成）",strokes:[
+    "M 60,40 Q 80,30 90,50 Q 85,80 65,80 Q 50,70 55,50",
+    "M 80,75 Q 75,110 85,140"
+  ],strokeNames:["横撇","弯钩"],ci:["好了","来了","了解"]},
+
+  "在":{ch:"在",py:"zài",cn:"存在、居于",strokes:[
+    "M 50,30 Q 70,25 90,30",
+    "M 60,40 L 60,55",
+    "M 80,40 L 80,55",
+    "M 50,55 L 100,55",
+    "M 65,55 Q 70,80 70,150",
+    "M 45,90 Q 70,85 100,90",
+    "M 55,110 Q 70,105 90,110 L 85,140",
+    "M 50,130 Q 70,125 90,135 L 85,155"
+  ],strokeNames:["横","撇","竖","横","竖","撇","横折","横"],ci:["现在","正在","存在"]},
+
+  "有":{ch:"有",py:"yǒu",cn:"具有、存在",strokes:[
+    "M 50,30 Q 70,25 90,30",
+    "M 60,40 L 60,55",
+    "M 80,40 L 80,55",
+    "M 50,55 L 100,55",
+    "M 50,70 Q 80,65 100,75 Q 100,100 75,100 Q 55,90 55,75",
+    "M 70,100 L 70,160"
+  ],strokeNames:["横","撇","竖","横","月","竖"],ci:["没有","有人","拥有"]},
+
+  "人":{ch:"人",py:"rén",cn:"人类",strokes:[
+    "M 70,30 Q 50,60 35,150",
+    "M 70,30 Q 90,60 105,150"
+  ],strokeNames:["撇","捺"],ci:["人们","人民","工人"]},
+
+  "大":{ch:"大",py:"dà",cn:"大小之大",strokes:[
+    "M 70,30 L 70,150",
+    "M 30,70 Q 70,60 110,70",
+    "M 60,80 Q 40,110 25,150",
+    "M 80,80 Q 100,110 115,150"
+  ],strokeNames:["横","撇","捺"],ci:["大人","大家","大小"]},
+
+  "小":{ch:"小",py:"xiǎo",cn:"大小之小",strokes:[
+    "M 70,40 L 70,140",
+    "M 50,60 Q 55,55 60,60",
+    "M 90,60 Q 85,55 80,60",
+    "M 55,100 Q 60,95 65,100",
+    "M 85,100 Q 80,95 75,100"
+  ],strokeNames:["竖钩","撇","点","撇","点"],ci:["小心","小学","小朋友"]},
+
+  "中":{ch:"中",py:"zhōng",cn:"中间、中心",strokes:[
+    "M 50,40 L 90,40",
+    "M 50,55 L 90,55",
+    "M 70,30 L 70,160",
+    "M 50,70 L 90,70",
+    "M 50,140 L 90,140"
+  ],strokeNames:["竖","横折","横","竖","横"],ci:["中间","中心","中国"]},
+
+  "上":{ch:"上",py:"shàng",cn:"方位（高处）",strokes:[
+    "M 40,50 L 100,50",
+    "M 70,30 L 70,150",
+    "M 40,90 L 100,90"
+  ],strokeNames:["竖","横","横"],ci:["上面","上学","向上"]},
+
+  "下":{ch:"下",py:"xià",cn:"方位（低处）",strokes:[
+    "M 40,50 L 100,50",
+    "M 70,50 L 70,150",
+    "M 40,90 L 100,90"
+  ],strokeNames:["横","竖","点"],ci:["下面","下雨","向下"]},
+
+  "个":{ch:"个",py:"gè",cn:"量词",strokes:[
+    "M 70,30 Q 50,40 40,55",
+    "M 70,30 Q 90,40 100,55",
+    "M 50,60 L 90,60",
+    "M 70,60 L 70,160"
+  ],strokeNames:["撇","捺","竖"],ci:["一个","个人","几个"]},
+
+  "好":{ch:"好",py:"hǎo",cn:"美好、赞许",strokes:[
+    "M 45,40 Q 55,30 60,40 L 55,60",
+    "M 55,45 Q 65,40 70,50 L 65,60",
+    "M 55,60 Q 65,80 60,150",
+    "M 45,85 Q 60,80 70,85",
+    "M 50,105 Q 60,100 68,105 L 65,130",
+    "M 80,40 Q 95,30 100,40 L 95,55",
+    "M 85,55 L 85,160",
+    "M 80,80 Q 105,75 110,90 Q 110,115 90,115 Q 75,105 80,85"
+  ],strokeNames:["撇点","撇","横","撇折","横","撇点","撇","横折钩","横"],ci:"auto"},
+
+  "学":{ch:"学",py:"xué",cn:"学习",strokes:[
+    "M 50,30 Q 40,25 35,35",
+    "M 90,30 Q 100,25 105,35",
+    "M 60,30 L 60,45",
+    "M 80,30 L 80,45",
+    "M 45,45 L 95,45",
+    "M 55,45 Q 60,55 55,65",
+    "M 85,45 Q 80,55 85,65",
+    "M 50,65 L 100,65",
+    "M 60,65 Q 70,75 70,150",
+    "M 55,90 L 85,90",
+    "M 55,120 L 85,120"
+  ],strokeNames:["点","点","点","点","横","撇","撇","横","横撇","横","横"],ci:["学生","学习","学校"]},
+
+  "生":{ch:"生",py:"shēng",cn:"生命、出生",strokes:[
+    "M 45,30 Q 55,25 60,30 L 55,45",
+    "M 55,35 Q 70,30 80,40 L 75,50",
+    "M 50,50 L 90,50",
+    "M 65,50 L 65,160",
+    "M 50,80 L 85,80",
+    "M 50,110 L 85,110"
+  ],strokeNames:["撇","横","横","竖","横","横"],ci:["生日","生活","学生"]},
+
+  "天":{ch:"天",py:"tiān",cn:"天空、日子",strokes:[
+    "M 45,30 Q 70,25 95,30",
+    "M 70,30 L 70,150",
+    "M 35,60 L 105,60",
+    "M 60,70 Q 45,100 30,145",
+    "M 80,70 Q 95,100 110,145"
+  ],strokeNames:["横","横","撇","捺"],ci:"auto"},
+
+  "地":{ch:"地",py:"dì",cn:"土地、地面",strokes:[
+    "M 45,40 Q 55,30 60,40 L 55,60",
+    "M 55,45 Q 65,40 70,50 L 65,60",
+    "M 55,60 Q 65,80 60,160",
+    "M 45,90 Q 60,85 72,90",
+    "M 50,115 Q 62,110 70,115 L 67,140",
+    "M 80,40 Q 95,30 100,40 L 95,55",
+    "M 85,55 Q 95,50 100,60 L 95,70",
+    "M 88,65 L 88,160",
+    "M 80,90 L 105,90",
+    "M 80,120 L 105,120",
+    "M 85,120 Q 100,135 100,150"
+  ],strokeNames:["横","竖","提","撇","横折钩","竖弯钩"],ci:"auto"}
+};
+
+/* 自动组词用的高频搭配词库 */
+const CI_DB = {
+  "好":["好人","好的","好像","好学","美好"],
+  "天":["天空","今天","明天","天气","春天"],
+  "地":["地方","地上","土地","地上","天地"],
+  "我":["我们","我家","自我","忘我"],
+  "你":["你好","你们","你的"],
+  "他":["他们","他人","其他"],
+  "的":["目的","你的","好的","真的"],
+  "了":["好了","来了","了解","不了"],
+  "在":["现在","正在","存在","在乎"],
+  "有":["没有","有人","拥有","有的"],
+  "人":["人们","人民","工人","主人"],
+  "大":["大人","大家","大小","长大"],
+  "小":["小心","小学","小朋友","从小"],
+  "中":["中间","中心","中国","其中"],
+  "上":["上面","上学","向上","上课"],
+  "下":["下面","下雨","向下","下课"],
+  "个":["一个","个人","几个","这个"],
+  "学":["学生","学习","学校","上学"],
+  "生":["生日","生活","学生","发生"]
+};
+
+/* ===================== 拼音朗读（Web Speech API） ===================== */
+function speakZh(text){
+  if(!text) return;
+  if(!('speechSynthesis' in window)){ alert('当前浏览器不支持语音朗读'); return; }
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='zh-CN'; u.rate=0.85;
+  const voices=window.speechSynthesis.getVoices();
+  const zh=voices.find(v=>/^zh/i.test(v.lang));
+  if(zh) u.voice=zh;
+  try{ window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }catch(e){}
+}
+// 等待语音列表加载（部分浏览器异步加载）
+if('speechSynthesis' in window){
+  window.speechSynthesis.addEventListener('voiceschanged',()=>{},{once:true});
+}
+
+/* ===================== 笔画笔顺动画引擎 ===================== */
+let strokeAnim={
+  svg:null, paths:[], timer:null, idx:0, playing:false,
+  charData:null,
+
+  init(svgEl){
+    this.svg=svgEl;
+  },
+
+  load(charData){
+    this.stop();
+    this.charData=charData;
+    this.idx=0;
+    this.renderAll();
+    this.renderOrder();
+  },
+
+  // 渲染所有笔画（灰色底色）
+  renderAll(){
+    if(!this.svg || !this.charData) return;
+    this.svg.innerHTML='';
+    this.paths=[];
+    const ns='http://www.w3.org/2000/svg';
+    this.charData.strokes.forEach((d,i)=>{
+      const path=document.createElementNS(ns,'path');
+      path.setAttribute('d',d);
+      path.setAttribute('fill','none');
+      path.setAttribute('stroke','#cbd5e1');
+      path.setAttribute('stroke-width',6);
+      path.setAttribute('stroke-linecap','round');
+      path.setAttribute('stroke-linejoin','round');
+      path.setAttribute('opacity','0.3');
+      this.svg.appendChild(path);
+      this.paths.push(path);
+    });
+  },
+
+  // 渲染笔画名称列表
+  renderOrder(){
+    const el=document.getElementById('strokeOrder');
+    if(!el || !this.charData) return;
+    el.innerHTML='';
+    this.charData.strokeNames.forEach((name,i)=>{
+      const s=document.createElement('span');
+      s.className='s-name';
+      s.textContent=(i+1)+'.'+name;
+      s.dataset.idx=i;
+      s.onclick=()=>{ this.playFrom(i); };
+      el.appendChild(s);
+    });
+  },
+
+  // 高亮当前笔画名称
+  highlightOrder(idx){
+    document.querySelectorAll('#strokeOrder .s-name').forEach((el,i)=>{
+      el.classList.toggle('active',i===idx);
+    });
+  },
+
+  // 获取路径总长度（用于动画）
+  getPathLength(path){
+    try{ return path.getTotalLength(); }catch(e){ return 200; }
+  },
+
+  // 播放单笔
+  animateStroke(idx){
+    if(idx>=this.paths.length){ this.playing=false; document.getElementById('strokeInfo').textContent='✅ 笔顺播放完成'; return; }
+    const path=this.paths[idx];
+    const len=this.getPathLength(path);
+    path.style.stroke='#1d4ed8';
+    path.style.opacity='1';
+    path.style.strokeDasharray=len;
+    path.style.strokeDashoffset=len;
+
+    const name=this.charData.strokeNames[idx]||'';
+    document.getElementById('strokeInfo').textContent='第 '+(idx+1)+' 笔：'+name;
+    this.highlightOrder(idx);
+
+    // 动画：dashoffset 从 len 到 0
+    const duration=600; // 每笔 600ms
+    const start=performance.now();
+    const animate=(now)=>{
+      const t=Math.min((now-start)/duration,1);
+      path.style.strokeDashoffset=len*(1-t);
+      if(t<1){
+        this.timer=requestAnimationFrame(animate);
+      } else {
+        // 保留已写的笔画为黑色
+        path.style.stroke='#1e293b';
+        path.style.opacity='0.8';
+        path.style.strokeDasharray='none';
+        path.style.strokeDashoffset=0;
+        // 间隔后画下一笔
+        setTimeout(()=>{
+          this.idx=idx+1;
+          if(this.playing) this.animateStroke(this.idx);
+        },200);
+      }
+    };
+    this.timer=requestAnimationFrame(animate);
+  },
+
+  play(){
+    if(!this.charData) return;
+    if(this.playing) return;
+    this.playing=true;
+    this.renderAll();
+    this.idx=0;
+    this.animateStroke(0);
+  },
+
+  playFrom(idx){
+    if(!this.charData) return;
+    this.stop();
+    this.renderAll();
+    // 先把 idx 之前的笔画显示为已完成
+    for(let i=0;i<idx;i++){
+      if(this.paths[i]){
+        this.paths[i].style.stroke='#1e293b';
+        this.paths[i].style.opacity='0.8';
+        this.paths[i].style.strokeDasharray='none';
+        this.paths[i].style.strokeDashoffset=0;
+      }
+    }
+    this.playing=true;
+    this.idx=idx;
+    this.animateStroke(idx);
+  },
+
+  stop(){
+    if(this.timer){ cancelAnimationFrame(this.timer); this.timer=null; }
+    this.playing=false;
+  },
+
+  reset(){
+    this.stop();
+    this.idx=0;
+    this.renderAll();
+    document.getElementById('strokeInfo').textContent='点击 ▶️ 播放笔顺动画';
+    this.highlightOrder(-1);
+  }
+};
+
+/* ===================== 礼花效果 ===================== */
+const fireConfetti=(function(){
+  let canvas=null,ctx=null,raf=null,parts=[];
+  function ensure(){
+    if(canvas) return;
+    canvas=document.createElement('canvas');
+    canvas.className='confetti-canvas';
+    canvas.width=window.innerWidth*(window.devicePixelRatio||1);
+    canvas.height=window.innerHeight*(window.devicePixelRatio||1);
+    canvas.style.width='100vw';
+    canvas.style.height='100vh';
+    document.body.appendChild(canvas);
+    ctx=canvas.getContext('2d');
+    ctx.scale(window.devicePixelRatio||1,window.devicePixelRatio||1);
+  }
+  function spawn(count){
+    ensure();
+    const colors=['#fbbf24','#f87171','#60a5fa','#34d399','#a78bfa','#fb923c','#f472b6','#22d3ee','#facc15'];
+    const cx=window.innerWidth/2,cy=window.innerHeight*0.35;
+    for(let i=0;i<count;i++){
+      const a=Math.random()*Math.PI*2;
+      const sp=3+Math.random()*7;
+      parts.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3,g:0.18,life:70+Math.random()*50,c:colors[(Math.random()*colors.length)|0],r:3+Math.random()*5,rot:Math.random()*Math.PI,vr:(Math.random()-.5)*0.3,sh:Math.random()<0.3});
+    }
+    if(!raf) loop();
+  }
+  function loop(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    parts=parts.filter(p=>p.life>0);
+    for(const p of parts){
+      p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;p.life--;
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillStyle=p.c;
+      if(p.sh){ctx.fillRect(-p.r,-p.r*.4,p.r*2,p.r*.8);}else{ctx.beginPath();ctx.arc(0,0,p.r,0,Math.PI*2);ctx.fill();}
+      ctx.restore();
+    }
+    if(parts.length){raf=requestAnimationFrame(loop);}else{raf=null;ctx.clearRect(0,0,canvas.width,canvas.height);}
+  }
+  return {big:()=>spawn(120),small:()=>spawn(50)};
+})();
+
+/* ===================== 提取生字 ===================== */
+function charInfo(ch){
+  return CHAR_DB[ch]||null;
+}
+
+function extractChars(text){
+  // 只取汉字，去重保序
+  const raw=(text.match(/[\u4e00-\u9fa5]/g)||[]);
+  const seen=new Set(), out=[];
+  raw.forEach(ch=>{
+    if(seen.has(ch)) return;
+    seen.add(ch);
+    const info=charInfo(ch);
+    out.push({ch, info});
+  });
+  return out;
+}
+
+/* 获取组词列表 */
+function getCi(ch){
+  if(CHAR_DB[ch] && Array.isArray(CHAR_DB[ch].ci) && CHAR_DB[ch].ci.length){
+    return CHAR_DB[ch].ci;
+  }
+  if(CI_DB[ch]) return CI_DB[ch];
+  return [];
+}
+
+/* ===================== 渲染生字卡片 ===================== */
+const wordGrid=document.getElementById('wordGrid');
+const sentenceOut=document.getElementById('sentenceOut');
+const resultTitle=document.getElementById('resultTitle');
+let currentChar=null, curContext='';
+
+function renderCards(list){
+  wordGrid.innerHTML='';
+  sentenceOut.innerHTML='';
+  if(!list.length){ resultTitle.style.display='none'; return; }
+  resultTitle.style.display='block';
+  const known=list.filter(x=>x.info).length;
+  const unk=list.length-known;
+  resultTitle.textContent='提取到 '+list.length+' 个汉字（已收录 '+known+'，未收录 '+unk+'）';
+  list.forEach(it=>{
+    const o=it.info;
+    const div=document.createElement('div');
+    div.className='wcard';
+    const ciList=getCi(it.ch);
+    const ciPreview=ciList.length?ciList.slice(0,2).join('、'):'—';
+    if(o){
+      div.innerHTML='<div class="char">'+o.ch+'</div>'
+        +'<div class="py">'+o.py+'</div>'
+        +'<div class="ci">'+ciPreview+'</div>'
+        +'<div class="card-btns">'
+          +'<button class="btn-stroke" onclick="event.stopPropagation();openDetail(\''+o.ch+'\');setTimeout(()=>strokeAnim.play(),300);">✏️ 笔顺</button>'
+          +'<button class="btn-read" onclick="event.stopPropagation();speakZh(\''+o.ch+'\');">▶️ 朗读</button>'
+        +'</div>';
+      div.onclick=()=>openDetail(o.ch);
+    } else {
+      div.innerHTML='<div class="char" style="color:var(--red)">'+it.ch+'</div>'
+        +'<div class="py">—</div>'
+        +'<div class="ci">未收录</div>'
+        +'<div class="card-btns">'
+          +'<button class="btn-read" onclick="event.stopPropagation();speakZh(\''+it.ch+'\');">▶️ 朗读</button>'
+        +'</div>';
+      div.onclick=()=>{
+        curContext='生字「'+it.ch+'」（未收录）';
+        openChat();
+        chatInput.value='请讲讲生字「'+it.ch+'」的读音、笔顺和组词';
+      };
+    }
+    wordGrid.appendChild(div);
+  });
+}
+
+/* ===================== 生字详情弹窗 ===================== */
+const sheet=document.getElementById('sheet');
+
+function openDetail(ch){
+  const o=charInfo(ch);
+  currentChar=o||{ch:ch,py:'',cn:''};
+  const ctxParts=['生字「'+ch+'」'];
+  if(o){ ctxParts.push('拼音：'+o.py); if(o.cn) ctxParts.push('释义：'+o.cn); }
+  curContext=ctxParts.join('，');
+
+  document.getElementById('dChar').textContent=ch;
+  document.getElementById('dPinyin').textContent=o?o.py:'（未收录）';
+  document.getElementById('dCn').textContent=o?o.cn:'';
+
+  // 加载笔画动画
+  if(o && o.strokes){
+    strokeAnim.init(document.getElementById('strokeSvg'));
+    strokeAnim.load(o);
+    document.querySelector('.stroke-area').style.display='block';
+  } else {
+    document.querySelector('.stroke-area').style.display='none';
+  }
+
+  // 加载组词
+  const ciList=getCi(ch);
+  const ciEl=document.getElementById('ciList');
+  ciEl.innerHTML='';
+  if(ciList.length){
+    ciList.forEach(word=>{
+      const item=document.createElement('span');
+      item.className='ci-item';
+      item.innerHTML=word;
+      item.onclick=()=>speakZh(word);
+      ciEl.appendChild(item);
+    });
+  } else {
+    ciEl.innerHTML='<span style="color:var(--muted);font-size:13px">暂无组词数据，可点击 💬 问 AI</span>';
+  }
+
+  sheet.classList.add('show');
+}
+
+document.getElementById('dClose').onclick=()=>{ sheet.classList.remove('show'); strokeAnim.stop(); };
+document.getElementById('dPlay').onclick=()=>{ if(currentChar) speakZh(currentChar.ch); };
+document.getElementById('dAdd').onclick=()=>{ if(currentChar){ addToBook(currentChar.ch); alert('已加入生字本 ✅'); } };
+document.getElementById('dAsk').onclick=()=>{
+  if(!currentChar) return;
+  curContext='生字「'+currentChar.ch+'」'+(currentChar.py?('，拼音：'+currentChar.py):'');
+  openChat();
+  chatInput.value='讲讲「'+currentChar.ch+'」这个字的笔顺、记忆方法和组词';
+  setTimeout(()=>chatInput.focus(),50);
+};
+
+/* 笔顺动画控制按钮 */
+document.getElementById('strokePlay').onclick=()=>{
+  if(strokeAnim.playing){
+    strokeAnim.stop();
+    document.getElementById('strokePlay').textContent='▶️ 继续';
+  } else {
+    if(strokeAnim.idx>0 && strokeAnim.idx<(strokeAnim.charData?strokeAnim.charData.strokes.length:0)){
+      strokeAnim.playing=true;
+      strokeAnim.animateStroke(strokeAnim.idx);
+    } else {
+      strokeAnim.play();
+    }
+    document.getElementById('strokePlay').textContent='⏸ 暂停';
+  }
+};
+document.getElementById('strokeReset').onclick=()=>{
+  strokeAnim.reset();
+  document.getElementById('strokePlay').textContent='▶️ 播放';
+};
+
+/* ===================== 句子分析 ===================== */
+function analyzeSentence(sent){
+  sentenceOut.innerHTML='';
+  wordGrid.innerHTML='';
+  resultTitle.style.display='none';
+  curContext='句子：「'+sent+'」';
+  renderSentence(tagLocal(sent));
+
+  const key=localStorage.getItem('cn_key');
+  const ep=localStorage.getItem('cn_endpoint')||'https://apihub.agnes-ai.com/v1/chat/completions';
+  const model=localStorage.getItem('cn_model')||'agnes-2.0-flash';
+  const showHint=(msg)=>{ sentenceOut.insertAdjacentHTML('afterbegin','<div class="sent-hint">'+msg+'</div>'); };
+  if(!key){ showHint('💡 句子成分分析需 Agnes Key：去聊天面板 ⚙ 填入（免费领）即可自动生成；当前仅显示拼音标注。'); return; }
+  const loading=document.createElement('div');
+  loading.className='sent-hint';
+  loading.textContent='🌳 正在生成句子成分分析…';
+  sentenceOut.appendChild(loading);
+  fetchTree(sent,key,ep,model).then(md=>{
+    loading.remove();
+    sentenceOut.insertAdjacentHTML('beforeend','<div class="tree">'+renderMd(md)+'</div>');
+  }).catch(e=>{
+    loading.remove();
+    showHint('⚠️ 分析失败：'+e.message+'（检查 ⚙ Key / 网络）');
+  });
+}
+
+async function fetchTree(sent,key,ep,model){
+  const sys='你是小学语文老师。请像"思维导图"一样，把句子逐层拆解成一棵成分树，严格用 Markdown 输出，不要代码块、不要多余解释。\n规则：\n1) 根节点写：## 整句：<原句>\n2) 标出 主语/谓语/宾语/定语/状语/补语。\n3) 修饰语用缩进挂到它的中心词下面。\n4) 用 2 或 4 个空格缩进表示层级。\n5) 括号里用中文简要说明词性与作用。\n只输出 Markdown 树。';
+  const r=await fetch(ep,{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'system',content:sys},{role:'user',content:sent}]})});
+  if(!r.ok) throw new Error('API '+r.status);
+  const j=await r.json();
+  let txt=j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content||'';
+  return txt.replace(/```[a-z]*\n?/gi,'').replace(/```/g,'').trim();
+}
+
+function tagLocal(sent){
+  return sent.split('').filter(ch=>/[\u4e00-\u9fa5]/.test(ch)).map(ch=>{
+    const info=charInfo(ch);
+    return {word:ch, pos:'', role:'', level:info?'小学':'超纲', py:info?info.py:''};
+  });
+}
+
+function renderSentence(arr){
+  sentenceOut.innerHTML='';
+  const box=document.createElement('div');
+  box.className='sent';
+  arr.forEach(t=>{
+    const hard=t.level==='超纲';
+    const tok=document.createElement('span');
+    tok.className='tok'+(hard?' hard':'');
+    tok.innerHTML='<span class="w">'+t.word+'</span>'+
+      (t.py?'<span class="meta">'+t.py+'</span>':'')+
+      (t.pos?'<span class="meta">'+t.pos+'</span>':'');
+    const _ci=charInfo(t.word);
+    if(_ci) tok.onclick=()=>openDetail(t.word);
+    box.appendChild(tok);
+  });
+  sentenceOut.appendChild(box);
+}
+
+/* ===================== 分析入口 ===================== */
+let mode='text';
+document.getElementById('tabText').onclick=function(){
+  mode='text'; this.classList.add('on');
+  document.getElementById('tabSent').classList.remove('on');
+  document.getElementById('input').placeholder='粘贴或输入课文段落、生字…（语音可用输入法键盘的🎤说）';
+};
+document.getElementById('tabSent').onclick=function(){
+  mode='sent'; this.classList.add('on');
+  document.getElementById('tabText').classList.remove('on');
+  document.getElementById('input').placeholder='输入一句中文，分析句子成分与拼音…';
+};
+document.getElementById('btnAnalyze').onclick=()=>{
+  const v=document.getElementById('input').value.trim();
+  if(!v){ alert('先输入内容'); return; }
+  if(mode==='sent'){ analyzeSentence(v); }
+  else{ renderCards(extractChars(v)); }
+};
+document.getElementById('btnClear').onclick=()=>{
+  document.getElementById('input').value='';
+  wordGrid.innerHTML='';
+  sentenceOut.innerHTML='';
+  resultTitle.style.display='none';
+};
+
+/* ===================== 生字本 ===================== */
+let book=JSON.parse(localStorage.getItem('cn_book')||'[]');
+function addToBook(ch){
+  if(book.includes(ch)) return;
+  book.push(ch);
+  localStorage.setItem('cn_book',JSON.stringify(book));
+}
+const wb=document.getElementById('wb');
+document.getElementById('openWb').onclick=()=>{ renderBook(); wb.classList.add('show'); };
+document.getElementById('wbClose').onclick=()=>wb.classList.remove('show');
+function renderBook(){
+  const list=document.getElementById('wbList');
+  list.innerHTML='';
+  if(!book.length){ list.innerHTML='<div style="color:var(--muted);font-size:13px">还没有生字，去卡片点「📌 加到生字本」</div>'; return; }
+  book.forEach(ch=>{
+    const info=charInfo(ch);
+    const d=document.createElement('div');
+    d.className='item';
+    const py=info?info.py:'—';
+    const cn=info?info.cn:'';
+    d.innerHTML='<span class="char">'+ch+'</span><span><span class="py">'+py+'</span> <span class="cn">'+cn+'</span></span>';
+    const b=document.createElement('button');
+    b.textContent='看'; b.onclick=()=>{ wb.classList.remove('show'); openDetail(ch); };
+    const bk=document.createElement('button');
+    bk.textContent='🔊'; bk.title='朗读'; bk.onclick=(e)=>{e.stopPropagation();speakZh(ch);};
+    const x=document.createElement('button');
+    x.textContent='删'; x.onclick=()=>{ book=book.filter(y=>y!==ch); localStorage.setItem('cn_book',JSON.stringify(book)); renderBook(); };
+    d.appendChild(b); d.appendChild(bk); d.appendChild(x);
+    list.appendChild(d);
+  });
+}
+
+/* ===================== 互动聊天（Agnes AI） ===================== */
+const chatFab=document.getElementById('chatFab'), chat=document.getElementById('chat'), chatMsgs=document.getElementById('chatMsgs'), chatInput=document.getElementById('chatInput');
+let chatOpen=false, chatBusy=false, chatHistory=[];
+
+function openChat(){
+  chat.classList.add('show'); chatOpen=true;
+  if(!chatMsgs.children.length) addMsg('system','已接入互动讲解。不懂的生字、笔顺、组词直接问，我会结合当前内容讲。');
+  setTimeout(()=>{ try{ chatInput.focus(); }catch(e){} },50);
+}
+function closeChat(){ chat.classList.remove('show'); chatOpen=false; }
+document.getElementById('chatFab').onclick=()=>{ chatOpen?closeChat():openChat(); };
+document.getElementById('chatClose').onclick=closeChat;
+document.getElementById('chatGear').onclick=()=>document.getElementById('chatSet').classList.toggle('show');
+
+document.getElementById('setSave').onclick=()=>{
+  localStorage.setItem('cn_endpoint',document.getElementById('setEndpoint').value);
+  localStorage.setItem('cn_model',document.getElementById('setModel').value);
+  localStorage.setItem('cn_key',document.getElementById('setKey').value);
+  alert('已保存（仅本机）');
+};
+(function(){
+  document.getElementById('setEndpoint').value=localStorage.getItem('cn_endpoint')||'https://apihub.agnes-ai.com/v1/chat/completions';
+  document.getElementById('setModel').value=localStorage.getItem('cn_model')||'agnes-2.0-flash';
+  document.getElementById('setKey').value=localStorage.getItem('cn_key')||'';
+})();
+
+function systemPrompt(){
+  return '你是小学语文辅导老师，讲解要通俗易懂、多用例子和顺口溜，照顾小学生。'+
+    (curContext?('当前上下文：'+curContext+'。'):'')+
+    '【重要排版约束】请用纯文本回答：不要使用任何 Markdown 符号（包括 #、##、###、**、*、-、>、反引号、数字+点列表等），用换行和空格自然排版即可。';
+}
+
+function renderMd(t){
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const bold=s=>s.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+  const lines=t.split('\n');
+  const out=[]; const stack=[];
+  const closeDeep=ind=>{ while(stack.length && stack[stack.length-1]>ind){ out.push('</ul>'); stack.pop(); } };
+  for(const raw of lines){
+    if(!raw.trim()) continue;
+    const hm=raw.match(/^(#{1,3})\s+(.*)$/);
+    if(hm){ closeDeep(-1); out.push('<div class="hd h'+hm[1].length+'">'+esc(hm[2])+'</div>'); continue; }
+    const bm=raw.match(/^(\s*)[*\-]\s+(.*)$/);
+    if(bm){
+      const ind=bm[1].length;
+      closeDeep(ind);
+      if(!stack.length || stack[stack.length-1]<ind){ out.push('<ul>'); stack.push(ind); }
+      out.push('<li>'+bold(esc(bm[2]))+'</li>');
+      continue;
+    }
+    closeDeep(-1);
+    out.push(bold(esc(raw)));
+  }
+  closeDeep(-1);
+  return out.join('');
+}
+
+function addMsg(role,text){
+  const d=document.createElement('div');
+  d.className='msg '+role;
+  if(role==='assistant'){
+    d.innerHTML=renderMd(text);
+    const sp=document.createElement('span');
+    sp.className='speak';
+    sp.textContent='🔊 朗读';
+    sp.onclick=()=>speakZh(text);
+    d.appendChild(sp);
+  } else {
+    d.textContent=text;
+  }
+  chatMsgs.appendChild(d);
+  chatMsgs.scrollTop=chatMsgs.scrollHeight;
+}
+
+document.getElementById('chatQuick').addEventListener('click',e=>{
+  const q=e.target.getAttribute&&e.target.getAttribute('data-q');
+  if(q){ chatInput.value=q; openChat(); sendChat(); }
+});
+document.getElementById('chatSend').onclick=()=>sendChat();
+chatInput.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendChat(); } });
+
+async function sendChat(){
+  const text=chatInput.value.trim();
+  if(!text||chatBusy) return;
+  chatInput.value='';
+  addMsg('user',text);
+  chatHistory.push({role:'user',content:text});
+  chatBusy=true;
+  document.getElementById('chatSend').disabled=true;
+  const thinking=document.createElement('div');
+  thinking.className='msg sys';
+  thinking.textContent='思考中…';
+  chatMsgs.appendChild(thinking);
+
+  const ep=localStorage.getItem('cn_endpoint')||'https://apihub.agnes-ai.com/v1/chat/completions';
+  const key=localStorage.getItem('cn_key');
+  const model=localStorage.getItem('cn_model')||'agnes-2.0-flash';
+  if(!key){
+    thinking.remove();
+    addMsg('system','未配置 API Key：去 ⚙ 填入 Agnes Key（免费领），或复制下面的提示词去 WorkBuddy 问：\n\n'+buildPromptForCopy(text));
+    chatBusy=false; document.getElementById('chatSend').disabled=false;
+    return;
+  }
+  try{
+    const r=await fetch(ep,{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'system',content:systemPrompt()},...chatHistory]})});
+    if(!r.ok) throw new Error('API '+r.status);
+    const j=await r.json();
+    const ans=j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content||'(空)';
+    thinking.remove();
+    addMsg('assistant',ans);
+    chatHistory.push({role:'assistant',content:ans});
+  }catch(err){
+    thinking.remove();
+    addMsg('system','调用失败：'+err.message+'（检查 Key/网络，或复制提示词去 WorkBuddy 问）');
+  }
+  finally{ chatBusy=false; document.getElementById('chatSend').disabled=false; }
+}
+
+function buildPromptForCopy(text){
+  return '【小学语文辅导】'+(curContext?curContext+'\n':'')+'问题：'+text;
+}
+</script>
+</body>
+</html>

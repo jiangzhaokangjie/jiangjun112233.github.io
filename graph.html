@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>北师大版小学数学 · 知识点串联图谱</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1d4ed8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="数图">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --c-num:#2563eb;      /* 数与代数 */
+    --c-geo:#16a34a;      /* 图形与几何 */
+    --c-sta:#ea580c;      /* 统计与概率 */
+    --c-pra:#9333ea;      /* 综合与实践 */
+    --bg:#0f172a; --panel:#1e293b; --line:#334155; --txt:#e2e8f0; --muted:#94a3b8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--txt);height:100vh;overflow:hidden}
+  header{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{font-size:16px;margin:0;font-weight:600}
+  header .hint{font-size:12px;color:var(--muted)}
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto}
+  select,input[type=text]{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:13px}
+  input[type=text]{width:200px}
+  .legend{display:flex;gap:14px;font-size:12px;padding:6px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .main{display:flex;height:calc(100vh - 98px)}
+  #graph{flex:1;background:radial-gradient(circle at 50% 40%,#172033,#0f172a);cursor:grab;touch-action:none;-webkit-user-select:none;-webkit-touch-callout:none;user-select:none}
+  #graph.grabbing{cursor:grabbing}
+  .side{width:340px;border-left:1px solid var(--line);background:var(--panel);overflow-y:auto;padding:14px}
+  .side h2{font-size:15px;margin:0 0 4px}
+  .side .grade{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .side .desc{font-size:13px;line-height:1.6;color:#cbd5e1;margin-bottom:12px}
+  .grp{margin-bottom:12px}
+  .grp .lab{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .chip{display:inline-block;background:#0f172a;border:1px solid var(--line);border-radius:14px;padding:4px 10px;margin:3px 4px 3px 0;font-size:12.5px;cursor:pointer;transition:.15s;color:var(--txt)}
+  .chip:hover{border-color:#64748b;background:#273449}
+  .chip.pre{border-left:3px solid #f59e0b}
+  .chip.post{border-left:3px solid #22d3ee}
+  .chip.rel{border-left:3px solid #a78bfa}
+  .empty{color:var(--muted);font-size:13px}
+  .band{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+  .band .g{font-size:10px;width:30px;text-align:center;padding:3px 0;border-radius:4px;background:#0f172a;border:1px solid var(--line);color:var(--muted)}
+  .band .g.on{background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:600}
+  .node circle{cursor:pointer}
+  .node text{pointer-events:none;font-size:11px;fill:var(--txt);paint-order:stroke;stroke:#0f172a;stroke-width:3px}
+  .dim{opacity:.12}
+  .edge{stroke:#475569;stroke-width:1}
+  .edge.hot{stroke:#fbbf24;stroke-width:2}
+  .node.sel circle{stroke:#fff;stroke-width:3px}
+  details{margin-top:10px;font-size:12px;color:var(--muted)}
+  summary{cursor:pointer}
+  /* 长按详情弹窗 */
+  .modal{position:fixed;inset:0;background:rgba(2,6,23,.74);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal.show{display:flex}
+  .modal-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:700px;width:100%;max-height:86vh;overflow-y:auto;padding:20px 22px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  #modalClose{position:absolute;top:8px;right:14px;background:none;border:none;color:var(--muted);font-size:26px;cursor:pointer;line-height:1}
+  #modalClose:hover{color:var(--txt)}
+  .m-head{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .m-domain{color:#fff;font-size:11px;padding:2px 10px;border-radius:10px}
+  .m-grade{font-size:12px;color:var(--muted)}
+  .m-title{font-size:20px;margin:0 0 8px}
+  .m-desc{font-size:13.5px;line-height:1.7;color:#cbd5e1;margin-bottom:14px}
+  .ex{background:#0f172a;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+  .exq{font-size:13.5px;color:#e2e8f0;margin-bottom:5px}
+  .exq::before{content:"✏️ ";}.exa::before{content:"💡 "}
+  .exa{font-size:13px;color:#94a3b8;line-height:1.6}
+  .ck{background:#0f172a;border-left:3px solid #475569;border-radius:6px;padding:7px 10px;margin-bottom:6px;font-size:12.5px;color:#cbd5e1;line-height:1.6}
+  .ck-name{color:#e2e8f0;font-weight:600;margin-right:6px}
+  .m-locate{margin-top:10px;background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px}
+  .m-locate:hover{background:#2563eb}
+
+  /* 移动端适配（≤768px） */
+  @media (max-width:768px){
+    body{height:auto;min-height:100vh;overflow-y:auto}
+    header{padding:8px 10px;gap:6px}
+    header h1{font-size:14px;line-height:1.3}
+    header .hint{display:none}                    /* 移动端隐藏长说明 */
+    .toolbar{margin-left:0;width:100%;gap:5px;margin-top:6px}
+    .toolbar select,.toolbar input[type=text]{font-size:12px;padding:5px 6px;flex:1;min-width:0}
+    input[type=text]{width:auto}
+    .toolbar button{padding:5px 8px;font-size:12px}
+    .legend{padding:4px 10px;gap:10px;font-size:11px}
+    .main{flex-direction:column;height:auto;min-height:calc(100vh - 130px)}
+    #graph{flex:none;width:100%;height:55vh;min-height:320px}
+    .side{width:100%;max-height:none;border-left:none;border-top:1px solid var(--line);padding:10px 12px}
+    .side h2{font-size:15px}
+    .side .grade{font-size:11px}
+    .side .desc{font-size:12.5px;margin-bottom:8px}
+    .grp{margin-bottom:8px}
+    .chip{font-size:12px;padding:3px 8px}
+    /* 弹窗移动端紧凑化、靠底 */
+    .modal{padding:0;align-items:flex-end}
+    .modal-box{max-width:100%;max-height:88vh;border-radius:14px 14px 0 0;padding:16px 16px 24px}
+    .m-title{font-size:18px}
+    .m-desc{font-size:13px}
+    .ex{padding:9px 10px}
+    .m-locate{width:100%;padding:11px;font-size:14px}
+    .node circle{r:10}                            /* 节点稍大一点，便于触屏瞄准 */
+  }
+
+  /* ===================== 对话互动面板 ===================== */
+  .fab{position:fixed;right:18px;bottom:18px;width:54px;height:54px;border-radius:50%;background:#1d4ed8;color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);z-index:46;display:flex;align-items:center;justify-content:center}
+  .fab:hover{background:#2563eb}
+  .chat{position:fixed;right:18px;bottom:84px;width:372px;max-width:calc(100vw - 24px);height:72vh;max-height:640px;background:var(--panel);border:1px solid var(--line);border-radius:14px;display:none;flex-direction:column;z-index:47;box-shadow:0 20px 60px rgba(0,0,0,.5);overflow:hidden}
+  .chat.show{display:flex}
+  .chat-hd{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line);background:#172033}
+  .chat-hd .ttl{font-size:14px;font-weight:600}
+  .chat-hd .cur{font-size:11px;color:var(--muted);margin-left:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
+  .chat-hd .x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+  .chat-hd .ic{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer}
+  .chat-hd .ic:hover{color:var(--txt)}
+  .chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .msg{font-size:13px;line-height:1.65;border-radius:10px;padding:8px 11px;max-width:88%;white-space:pre-wrap;word-break:break-word}
+  .msg.u{background:#1d4ed8;color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+  .msg.a{background:#0f172a;border:1px solid var(--line);color:#e2e8f0;align-self:flex-start;border-bottom-left-radius:3px}
+  .msg.sys{background:transparent;color:var(--muted);font-size:11.5px;text-align:center;align-self:center;max-width:100%}
+  .chat-quick{display:flex;gap:6px;padding:0 12px 6px;flex-wrap:wrap}
+  .chat-quick button{background:#0f172a;border:1px solid var(--line);color:#cbd5e1;border-radius:12px;padding:4px 10px;font-size:12px;cursor:pointer}
+  .chat-quick button:hover{border-color:#64748b}
+  .chat-in{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--line);align-items:flex-end}
+  .chat-in textarea{flex:1;resize:none;background:#0f172a;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:13px;font-family:inherit;height:44px;max-height:120px;line-height:1.4}
+  .chat-in button{background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:0 14px;height:44px;cursor:pointer;font-size:13px}
+  .chat-in button:disabled{opacity:.5;cursor:default}
+  .chat-set{display:none;padding:10px 12px;border-top:1px solid var(--line);background:#172033;flex-direction:column;gap:6px}
+  .chat-set.show{display:flex}
+  .chat-set label{font-size:11px;color:var(--muted)}
+  .chat-set input{background:#0f172a;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12px;width:100%}
+  .chat-set .row{display:flex;gap:6px;align-items:center}
+  .chat-set .save{background:#16a34a;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px}
+  .chat-set .hint{font-size:11px;color:var(--muted)}
+  .msg.a{display:flex;flex-direction:column;align-items:stretch;line-height:1.7}
+  .speak{margin-top:6px;align-self:flex-end;background:#1e293b;border:1px solid var(--line);color:#cbd5e1;border-radius:10px;padding:2px 9px;font-size:12px;cursor:pointer}
+  .speak:hover{border-color:#64748b}
+  .msg.a .hd{font-weight:700;margin:6px 0 4px;color:#fbbf24}
+  .msg.a ul{margin:4px 0;padding-left:18px}
+  .msg.a li{margin:2px 0}
+  .msg.a b{color:#fde68a}
+  @media (max-width:768px){
+    .chat{right:0;left:0;bottom:0;width:100%;max-width:100%;height:82vh;border-radius:14px 14px 0 0}
+    .fab{right:14px;bottom:14px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>北师大版小学数学 · 知识点串联图谱</h1>
+  <span class="hint">点击节点 → 高亮「前置链（回溯）⇠ 当前 ⇢ 后继链（追踪）」；<b>长按节点</b> → 弹出「知识点详情 + 例题讲解」</span>
+  <div class="toolbar">
+    <select id="domainFilter">
+      <option value="">全部领域</option>
+      <option value="数与代数">数与代数</option>
+      <option value="图形与几何">图形与几何</option>
+      <option value="统计与概率">统计与概率</option>
+      <option value="综合与实践">综合与实践</option>
+    </select>
+    <input type="text" id="search" placeholder="搜索知识点，如：分数 / 面积 / 方程">
+    <button id="reset" style="background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer">重置</button>
+  </div>
+</header>
+<div class="legend">
+  <span><i class="dot" style="background:var(--c-num)"></i>数与代数</span>
+  <span><i class="dot" style="background:var(--c-geo)"></i>图形与几何</span>
+  <span><i class="dot" style="background:var(--c-sta)"></i>统计与概率</span>
+  <span><i class="dot" style="background:var(--c-pra)"></i>综合与实践</span>
+</div>
+<div class="main">
+  <svg id="graph"></svg>
+  <aside class="side" id="side">
+    <div class="empty">← 在左侧点选一个知识点<br><br>或从搜索引擎输入框定位。<br><br>例如：从「分数」出发，可一路串联 分数初步认识(三上) → 分数意义(五上) → 分数加减/乘除 → 百分数/比/比例(六上六下)，同时回溯到「除法(平均分)」「整数认识」等前置。</div>
+    <details>
+      <summary>关于这张图谱</summary>
+      <p>覆盖北师大版 1~6 年级（一上～六下）四大领域的主要知识点。每个节点记录：引入年级、前置知识(pre)、后继知识(post)、横向关联(rel)。图谱基于标准教材结构整理，可按需自行增删节点（见文件内 NODES 数组）。</p>
+    </details>
+  </aside>
+</div>
+
+<div id="modal" class="modal">
+  <div class="modal-box">
+    <button id="modalClose" title="关闭">×</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<button class="fab" id="chatFab" title="对话互动·出练习题 / 追问讲解">💬</button>
+<div class="chat" id="chat">
+  <div class="chat-hd">
+    <span class="ttl">💬 对话互动</span>
+    <span class="cur" id="chatCur">未选知识点</span>
+    <button class="ic" id="chatCopy" title="复制提示词（去 WorkBuddy 问）">📋</button>
+    <button class="ic" id="chatGear" title="API 设置">⚙</button>
+    <button class="x" id="chatClose">×</button>
+  </div>
+  <div class="chat-msgs" id="chatMsgs"></div>
+  <div class="chat-quick" id="chatQuick">
+    <button data-q="请基于当前知识点出3道练习题（含答案与分步讲解）">📝 出练习题</button>
+    <button data-q="用生活中的例子讲讲这块，让我听懂">🧸 讲给我听</button>
+    <button data-q="把当前知识点和前置来路串起来讲一遍">🔗 串联讲解</button>
+    <button data-q="清空对话">🗑 清空</button>
+  </div>
+  <div class="chat-in">
+    <textarea id="chatInput" placeholder="让它出练习题，或哪里不懂就直接问…（也可用语输入法的语音说）"></textarea>
+    <button id="chatSend">发送</button>
+  </div>
+  <div class="chat-set" id="chatSet">
+    <label>API 地址（OpenAI 兼容，已预填 Agnes AI）</label>
+    <input id="setEndpoint" value="https://apihub.agnes-ai.com/v1/chat/completions">
+    <label>模型名（已预填 Agnes 文本模型）</label>
+    <input id="setModel" value="agnes-2.0-flash">
+    <label>API Key（仅存本地浏览器，不会上传；Agnes 可免费领）</label>
+    <input id="setKey" type="password" placeholder="在 platform.agnes-ai.com 创建 Key">
+    <div class="row"><button class="save" id="setSave">保存</button><span class="hint">没 Key？用 📋 复制提示词去 WorkBuddy 问</span></div>
+  </div>
+</div>
+
+<script>
+/* ===================== 知识点结构化数据 ===================== */
+/* 字段: id 唯一标识 | name 名称 | domain 领域 | grade 引入年级 | order 排序 | desc 简介 | pre 前置 | post 后继 | rel 横向关联 */
+const GRADE_ORDER = {'一上':1,'一下':2,'二上':3,'二下':4,'三上':5,'三下':6,'四上':7,'四下':8,'五上':9,'五下':10,'六上':11,'六下':12};
+const GRADES = ['一上','一下','二上','二下','三上','三下','四上','四下','五上','五下','六上','六下'];
+
+const NODES = [
+  /* ---------- 数与代数 · 数的认识 ---------- */
+  {id:'count',name:'数数（基数/序数）',domain:'数与代数',grade:'一上',desc:'手口一致地点数，理解几个(基数)与第几(序数)。',pre:[],post:['num10','compare'],rel:[]},
+  {id:'num10',name:'1~10 的认识',domain:'数与代数',grade:'一上',desc:'认读写 0~10，理解数的顺序与大小。',pre:['count'],post:['num20','add20'],rel:[]},
+  {id:'num20',name:'11~20 的认识',domain:'数与代数',grade:'一上',desc:'认识个位与十位，理解 10 个一是 1 个十。',pre:['num10'],post:['num100'],rel:[]},
+  {id:'num100',name:'100 以内数的认识',domain:'数与代数',grade:'一下',desc:'数数、读数、写数，理解数位与大小比较。',pre:['num20'],post:['num10000','add100'],rel:[]},
+  {id:'num10000',name:'万以内数的认识',domain:'数与代数',grade:'二下',desc:'认识计数单位千、万，理解位值。',pre:['num100'],post:['bignum','add10000'],rel:[]},
+  {id:'bignum',name:'大数（万级/亿级）认识',domain:'数与代数',grade:'四上',desc:'认识亿以内及亿以上数，读写为重点。',pre:['num10000'],post:['dec_intro'],rel:['negative']},
+  {id:'frac_intro',name:'分数初步认识',domain:'数与代数',grade:'三上',desc:'通过平均分认识几分之一、几分之几。',pre:['div_table','num100'],post:['frac_mean'],rel:['dec_intro']},
+  {id:'frac_mean',name:'分数意义（分数单位）',domain:'数与代数',grade:'五上',desc:'理解单位“1”、分数单位，真/假分数。',pre:['frac_intro','factor'],post:['frac_add','frac_mul'],rel:['dec_intro','ratio']},
+  {id:'dec_intro',name:'小数认识',domain:'数与代数',grade:'三下',desc:'借助元角分、米分米认识小数与十进制。',pre:['frac_intro','num100'],post:['dec_add'],rel:['frac_mean','money']},
+  {id:'pct',name:'百分数',domain:'数与代数',grade:'六上',desc:'理解百分数的意义，会读写与简单应用。',pre:['frac_mean','dec_intro'],post:['prop_dir'],rel:['ratio','pie']},
+  {id:'negative',name:'负数',domain:'数与代数',grade:'六下',desc:'在生活情境中认识正负数及 0 的界限。',pre:['bignum','num10000'],post:['prop_inv'],rel:[]},
+  {id:'factor',name:'倍数与因数',domain:'数与代数',grade:'五上',desc:'认识倍数、因数、质数、合数、奇偶性。',pre:['div_table','mul_table'],post:['frac_mean'],rel:[]},
+
+  /* ---------- 数与代数 · 数的运算 ---------- */
+  {id:'compare',name:'比较（大小/多少）',domain:'数与代数',grade:'一上',desc:'比多少、比长短，认识 = > <。',pre:['count'],post:['num10','add20'],rel:['line_angle']},
+  {id:'add20',name:'20 以内加减法',domain:'数与代数',grade:'一上',desc:'凑十法、破十法，熟练 20 以内计算。',pre:['num10'],post:['add100','mul_table'],rel:[]},
+  {id:'add100',name:'100 以内加减法',domain:'数与代数',grade:'一下',desc:'两位数加减一位数/整十数，笔算基础。',pre:['add20','num100'],post:['add10000'],rel:[]},
+  {id:'add10000',name:'万以内加减法',domain:'数与代数',grade:'二下',desc:'笔算进退位，连加连减与估算。',pre:['add100','num10000'],post:['div_2d','mix_op'],rel:[]},
+  {id:'mul_table',name:'表内乘法',domain:'数与代数',grade:'二上',desc:'2~9 乘法口诀，乘法意义（几个几）。',pre:['add20'],post:['mul_1d','div_table'],rel:[]},
+  {id:'mul_1d',name:'多位数乘一位数',domain:'数与代数',grade:'三上',desc:'笔算乘法，从口算到竖式。',pre:['mul_table'],post:['mul_2d','area_rect'],rel:[]},
+  {id:'mul_2d',name:'两位数乘两位数',domain:'数与代数',grade:'三下',desc:'分步相乘再相加的竖式结构。',pre:['mul_1d'],post:['dec_mul'],rel:[]},
+  {id:'div_table',name:'表内除法',domain:'数与代数',grade:'二下',desc:'平均分与除法意义，用口诀求商。',pre:['mul_table'],post:['div_2d','frac_intro'],rel:[]},
+  {id:'div_2d',name:'除数是两位数除法',domain:'数与代数',grade:'四上',desc:'试商、调商，笔算除法。',pre:['div_table','add10000'],post:['dec_div','op_law'],rel:[]},
+  {id:'dec_add',name:'小数加减法',domain:'数与代数',grade:'四下',desc:'小数点对齐，按位计算。',pre:['dec_intro','add100'],post:['dec_mul'],rel:[]},
+  {id:'dec_mul',name:'小数乘法',domain:'数与代数',grade:'四下',desc:'先按整数乘，再点小数点。',pre:['dec_add','mul_2d'],post:['dec_div'],rel:[]},
+  {id:'dec_div',name:'小数除法',domain:'数与代数',grade:'五上',desc:'转化为整数除法，处理商的小数点。',pre:['dec_mul','div_2d'],post:['frac_div'],rel:[]},
+  {id:'frac_add',name:'分数加减法',domain:'数与代数',grade:'五上',desc:'同分母直接加减，异分母先通分。',pre:['frac_mean'],post:['frac_mix'],rel:[]},
+  {id:'frac_mul',name:'分数乘法',domain:'数与代数',grade:'五上',desc:'分子乘分子、分母乘分母，含整数乘。',pre:['frac_mean','mul_2d'],post:['frac_div','ratio'],rel:[]},
+  {id:'frac_div',name:'分数除法',domain:'数与代数',grade:'五下',desc:'除以一个数等于乘它的倒数。',pre:['frac_mul','dec_div'],post:['ratio','pct'],rel:[]},
+  {id:'mix_op',name:'混合运算',domain:'数与代数',grade:'二下',desc:'同级与两级运算顺序，带小括号。',pre:['add10000'],post:['op_law','frac_mix'],rel:[]},
+  {id:'op_law',name:'运算律（交换/结合/分配）',domain:'数与代数',grade:'四上',desc:'加法/乘法交换律、结合律、分配律。',pre:['div_2d','mix_op'],post:['simp','frac_mix'],rel:[]},
+  {id:'simp',name:'简便计算',domain:'数与代数',grade:'四下',desc:'运用运算律进行凑整与简算。',pre:['op_law'],post:['frac_mix'],rel:[]},
+  {id:'frac_mix',name:'分数混合运算',domain:'数与代数',grade:'六上',desc:'分数四则混合，顺序与简算结合。',pre:['frac_add','frac_mul','op_law'],post:['prop_dir'],rel:[]},
+
+  /* ---------- 数与代数 · 式与方程 / 比和比例 ---------- */
+  {id:'letter',name:'用字母表示数',domain:'数与代数',grade:'四下',desc:'用字母表示数量关系与公式。',pre:['mix_op','num10000'],post:['equation'],rel:[]},
+  {id:'equation',name:'方程',domain:'数与代数',grade:'五上',desc:'认识等式与方程，列方程解应用题。',pre:['letter','op_law'],post:['frac_div','prop_dir'],rel:[]},
+  {id:'ratio',name:'比',domain:'数与代数',grade:'六上',desc:'理解比的意义、化简比、比值。',pre:['frac_mean','frac_div','div_2d'],post:['proportion','pct'],rel:['frac_mul']},
+  {id:'proportion',name:'比例',domain:'数与代数',grade:'六下',desc:'比例的意义与基本性质，解比例。',pre:['ratio'],post:['prop_dir','prop_inv'],rel:[]},
+  {id:'prop_dir',name:'正比例',domain:'数与代数',grade:'六下',desc:'两种量比值一定，图象是一条直线。',pre:['ratio','proportion','frac_mix'],post:['negative'],rel:['linechart']},
+  {id:'prop_inv',name:'反比例',domain:'数与代数',grade:'六下',desc:'两种量乘积一定，图象是曲线。',pre:['proportion','negative'],post:[],rel:['linechart']},
+
+  /* ---------- 数与代数 · 常见的量 ---------- */
+  {id:'money',name:'人民币（元角分）',domain:'数与代数',grade:'一下',desc:'认识人民币单位及换算、简单付钱。',pre:['num100'],post:['dec_intro'],rel:[]},
+  {id:'clock1',name:'认识钟表（整时/半时）',domain:'数与代数',grade:'一下',desc:'认识钟面，读整时与半时。',pre:['num10'],post:['clock2'],rel:[]},
+  {id:'clock2',name:'时、分的认',domain:'数与代数',grade:'二上',desc:'认识时与分及进率(60)。',pre:['clock1'],post:['timesec'],rel:[]},
+  {id:'timesec',name:'时、分、秒',domain:'数与代数',grade:'二下',desc:'认识秒及时间计算、经过时间。',pre:['clock2'],post:[],rel:['optimize']},
+  {id:'len',name:'长度单位（cm/m/km）',domain:'数与代数',grade:'二上',desc:'认识厘米、米、千米及测量。',pre:['num100'],post:['area_unit','perimeter'],rel:['solid']},
+  {id:'mass',name:'质量（克/千克/吨）',domain:'数与代数',grade:'三下',desc:'认识质量单位及换算。',pre:['num100'],post:[],rel:[]},
+  {id:'area_unit',name:'面积单位',domain:'数与代数',grade:'三下',desc:'认识 cm²、dm²、m² 及测量。',pre:['len'],post:['area_intro'],rel:['vol_unit']},
+  {id:'vol_unit',name:'体积（容积）单位',domain:'数与代数',grade:'五下',desc:'认识 cm³、dm³、m³、L、mL。',pre:['area_unit'],post:['volume'],rel:[]},
+
+  /* ---------- 图形与几何 · 认识 ---------- */
+  {id:'solid',name:'立体图形认识',domain:'图形与几何',grade:'一下',desc:'认长方体、正方体、圆柱、球。',pre:['plane'],post:['surface','volume'],rel:['len']},
+  {id:'plane',name:'平面图形认识',domain:'图形与几何',grade:'一下',desc:'认长方形、正方形、三角形、圆。',pre:['num10'],post:['line_angle','area_rect'],rel:['solid']},
+  {id:'line_angle',name:'线段、直线、射线与角',domain:'图形与几何',grade:'二上',desc:'认识线及锐角、直角、钝角。',pre:['plane','compare'],post:['tri_type'],rel:['compare']},
+  {id:'tri_type',name:'三角形分类',domain:'图形与几何',grade:'四下',desc:'按角/边分类，认识等腰、等边。',pre:['line_angle'],post:['para_trap','area_tri'],rel:[]},
+  {id:'para_trap',name:'平行四边形与梯形',domain:'图形与几何',grade:'四下',desc:'认识特征，会画高。',pre:['tri_type'],post:['area_para'],rel:[]},
+
+  /* ---------- 图形与几何 · 测量 ---------- */
+  {id:'perimeter',name:'周长',domain:'图形与几何',grade:'三上',desc:'封闭图形一周的长度，长方形周长。',pre:['len','plane'],post:['area_intro'],rel:[]},
+  {id:'area_intro',name:'面积的认识与单位',domain:'图形与几何',grade:'三下',desc:'理解面积含义，认识面积单位。',pre:['perimeter','area_unit'],post:['area_rect'],rel:[]},
+  {id:'area_rect',name:'长方形、正方形面积',domain:'图形与几何',grade:'三下',desc:'长×宽，正×正。',pre:['area_intro','mul_1d'],post:['area_para'],rel:[]},
+  {id:'area_para',name:'平行四边形面积',domain:'图形与几何',grade:'五上',desc:'割补转化成长方形推导公式。',pre:['area_rect','para_trap'],post:['area_tri'],rel:['transform']},
+  {id:'area_tri',name:'三角形面积',domain:'图形与几何',grade:'五上',desc:'拼成平行四边形，底×高÷2。',pre:['area_para','tri_type'],post:['area_trap'],rel:[]},
+  {id:'area_trap',name:'梯形面积',domain:'图形与几何',grade:'五上',desc:'拼成平行四边形推导公式。',pre:['area_tri','para_trap'],post:['area_comp'],rel:[]},
+  {id:'area_comp',name:'组合图形面积',domain:'图形与几何',grade:'五上',desc:'分割、添补转化为基本图形。',pre:['area_trap','area_rect'],post:['circle'],rel:[]},
+  {id:'circle',name:'圆（周长与面积）',domain:'图形与几何',grade:'六上',desc:'认识圆周率，C=πd，S=πr²。',pre:['area_comp','perimeter'],post:['cyl_cone'],rel:['transform']},
+  {id:'surface',name:'长方体、正方体表面积',domain:'图形与几何',grade:'五下',desc:'展开图与六个面面积之和。',pre:['solid','area_rect'],post:['volume'],rel:[]},
+  {id:'volume',name:'长方体、正方体体积',domain:'图形与几何',grade:'五下',desc:'V=abh，V=a³，及体积单位。',pre:['surface','vol_unit'],post:['cyl_cone'],rel:[]},
+  {id:'cyl_cone',name:'圆柱、圆锥体积',domain:'图形与几何',grade:'六下',desc:'圆柱=底面积×高，圆锥=1/3 等底等高。',pre:['circle','volume'],post:[],rel:[]},
+
+  /* ---------- 图形与几何 · 运动与位置 ---------- */
+  {id:'direction',name:'方向与位置（东西南北）',domain:'图形与几何',grade:'二上',desc:'认识八个方向与路线图。',pre:['plane'],post:['coord'],rel:[]},
+  {id:'observe',name:'观察物体（三视图）',domain:'图形与几何',grade:'二上',desc:'从不同方向看，培养空间观念。',pre:['solid','plane'],post:[],rel:['coord']},
+  {id:'transform',name:'平移、旋转、轴对称',domain:'图形与几何',grade:'三下',desc:'图形运动三种方式及画图。',pre:['plane'],post:['area_para','circle'],rel:['coord']},
+  {id:'coord',name:'数对与位置',domain:'图形与几何',grade:'四下',desc:'用数对(a,b)确定位置，初步坐标。',pre:['direction','transform'],post:['prop_dir'],rel:['observe']},
+
+  /* ---------- 统计与概率 ---------- */
+  {id:'classify',name:'分类与整理',domain:'统计与概率',grade:'一下',desc:'按标准分类，体会统计基础。',pre:[],post:['picto'],rel:['pattern']},
+  {id:'picto',name:'象形统计图',domain:'统计与概率',grade:'一下',desc:'用图形表示数量多少。',pre:['classify'],post:['bar'],rel:[]},
+  {id:'bar',name:'条形统计图',domain:'统计与概率',grade:'二下',desc:'一格代表几，单式与复式条形图。',pre:['picto'],post:['linechart','average'],rel:['combine']},
+  {id:'linechart',name:'折线统计图',domain:'统计与概率',grade:'五上',desc:'表示数量增减变化趋势。',pre:['bar'],post:['pie'],rel:['prop_dir','prop_inv']},
+  {id:'pie',name:'扇形统计图',domain:'统计与概率',grade:'六上',desc:'表示各部分占总体的百分比。',pre:['linechart','pct'],post:[],rel:[]},
+  {id:'average',name:'平均数',domain:'统计与概率',grade:'四下',desc:'理解平均数的意义与求法。',pre:['div_2d','bar'],post:['median_mode'],rel:[]},
+  {id:'median_mode',name:'中位数与众数',domain:'统计与概率',grade:'五下',desc:'认识集中趋势的另两种量数。',pre:['average'],post:[],rel:[]},
+  {id:'possibility',name:'可能性',domain:'统计与概率',grade:'三下',desc:'体验事件确定/不确定与大小。',pre:['classify'],post:['pie'],rel:['combine']},
+
+  /* ---------- 综合与实践 ---------- */
+  {id:'pattern',name:'找规律',domain:'综合与实践',grade:'一下',desc:'图形与数中的简单规律。',pre:['classify'],post:['combine'],rel:['frac_intro']},
+  {id:'combine',name:'搭配问题',domain:'综合与实践',grade:'二下',desc:'有序思考，乘法原理雏形。',pre:['pattern','bar'],post:['tree'],rel:['possibility']},
+  {id:'tree',name:'植树问题',domain:'综合与实践',grade:'四上',desc:'间隔与棵数关系，建模思想。',pre:['mul_1d','combine'],post:['chicken'],rel:['perimeter']},
+  {id:'chicken',name:'鸡兔同笼',domain:'综合与实践',grade:'五上',desc:'假设法、列表法解决问题。',pre:['equation','tree'],post:['pigeon'],rel:[]},
+  {id:'code',name:'数字编码（身份证/邮政）',domain:'综合与实践',grade:'五上',desc:'体会编码规则与信息表达。',pre:['bignum','num10000'],post:[],rel:[]},
+  {id:'optimize',name:'优化（沏茶/烙饼）',domain:'综合与实践',grade:'四下',desc:'统筹与最优策略。',pre:['timesec'],post:[],rel:[]},
+  {id:'pigeon',name:'鸽巢原理',domain:'综合与实践',grade:'六下',desc:'抽屉原理，逻辑推理入门。',pre:['chicken','median_mode'],post:[],rel:[]},
+];
+
+/* ===================== 图构建 ===================== */
+const byId = {};
+NODES.forEach(n=>{byId[n.id]=n; n.order=GRADE_ORDER[n.grade];});
+const COLOR = {'数与代数':'#2563eb','图形与几何':'#16a34a','统计与概率':'#ea580c','综合与实践':'#9333ea'};
+
+/* ===================== 例题讲解数据（长按详情用） ===================== */
+/* 键为节点 id；每个值为 [{q:题目, a:讲解}] 数组 */
+const EXAMPLES = {
+  count:[{q:'数一数：图中有几朵花？',a:'从左到右逐个数：1,2,3,4,5，共5朵。'}],
+  num10:[{q:'写出比7大、比10小的数。',a:'8和9（它们是7与10之间的数）。'}],
+  num20:[{q:'17里面有几个十和几个一？',a:'1个十和7个一，因为17=10+7。'}],
+  num100:[{q:'读出“三十五”并写出数字。',a:'写作35，表示3个十和5个一。'}],
+  num10000:[{q:'2304中，数字2在什么位？表示多少？',a:'在千位，表示2个千，即2000。'}],
+  bignum:[{q:'一亿等于多少个万？',a:'10000个万，因为1亿=100000000=10000×10000。'}],
+  frac_intro:[{q:'把一个月饼平均分成4份，取其中1份是几分之几？',a:'1/4（四分之一）。平均分是认识分数的前提。'},{q:'有3/4个苹果，表示什么意思？',a:'把一个苹果平均分成4份，取这样的3份。'}],
+  frac_mean:[{q:'3/4的分数单位是多少？它有几个这样的分数单位？',a:'分数单位是1/4，3/4里有3个1/4。'}],
+  dec_intro:[{q:'0.3元是几角？',a:'3角，因为0.3表示3个0.1，而1角=0.1元。'}],
+  pct:[{q:'六(1)班50人中有40人达标，达标率是多少？',a:'40÷50=0.8=80%。'}],
+  negative:[{q:'零下3℃可以怎样记？',a:'记作-3℃，0℃是零上温度与零下温度的分界。'}],
+  factor:[{q:'12的因数有哪些？其中质数有哪些？',a:'因数：1,2,3,4,6,12；质数：2和3。'}],
+  compare:[{q:'在○里填 >、< 或 =：8 ○ 10',a:'8<10，因为8在10的前面，更小。'}],
+  add20:[{q:'算一算：9+6=',a:'凑十法：9+1=10，10+5=15，所以9+6=15。'}],
+  add100:[{q:'35+27=',a:'个位5+7=12进1，十位3+2+1=6，得62。'}],
+  add10000:[{q:'345+287=',a:'个位5+7=12，十位4+8+1=13，百位3+2+1=6，得632。'}],
+  mul_table:[{q:'7×8=',a:'根据乘法口诀“七八五十六”，得56。'}],
+  mul_1d:[{q:'23×3=',a:'20×3=60，3×3=9，60+9=69。'}],
+  mul_2d:[{q:'24×12=',a:'24×10=240，24×2=48，240+48=288。'}],
+  div_table:[{q:'56÷7=',a:'想口诀“七八五十六”，得8。'}],
+  div_2d:[{q:'144÷12=',a:'把12看作除数试商：12×12=144，所以商12。'}],
+  dec_add:[{q:'1.2+3.4=',a:'小数点对齐，2+4=6，1+3=4，得4.6。'}],
+  dec_mul:[{q:'1.2×3=',a:'先按整数算12×3=36，因数共1位小数，得3.6。'}],
+  dec_div:[{q:'4.8÷2=',a:'按整数算48÷2=24，被除数1位小数，得2.4。'}],
+  frac_add:[{q:'1/2+1/3=',a:'通分：3/6+2/6=5/6。异分母要先化成同分母再加减。'}],
+  frac_mul:[{q:'2/3×3/4=',a:'分子乘分子、分母乘分母：6/12=1/2。'}],
+  frac_div:[{q:'2/3÷4/5=',a:'除以一个数等于乘它的倒数：2/3×5/4=10/12=5/6。'}],
+  mix_op:[{q:'12+3×4=',a:'先乘除后加减：3×4=12，12+12=24。'}],
+  op_law:[{q:'25×7×4 怎样算最简便？',a:'交换并结合：25×4×7=100×7=700。'}],
+  simp:[{q:'99+36=',a:'凑整：99+1+35=100+35=135，或(100-1)+36=135。'}],
+  frac_mix:[{q:'1/2+1/3×1/4=',a:'先乘：1/3×1/4=1/12；再加：6/12+1/12=7/12。'}],
+  letter:[{q:'每本书a元，买3本一共多少钱？',a:'3×a=3a（元）。字母可以表示数量关系。'}],
+  equation:[{q:'小明有一些糖，给弟弟5颗后还剩8颗，原来有几颗？',a:'设原有x颗：x-5=8，x=13。'}],
+  ratio:[{q:'化简比 12:18',a:'前后项同除以最大公因数6，得2:3。'}],
+  proportion:[{q:'解比例 3:4=x:8',a:'内项积=外项积：4x=24，x=6。'}],
+  prop_dir:[{q:'速度一定时，2小时行100km，5小时行多少？',a:'路程÷时间=速度（一定），成正比例：100÷2×5=250km。'}],
+  prop_inv:[{q:'路程一定，60km/h用2小时；若30km/h要用几小时？',a:'速度×时间=路程（一定），成反比例：60×2÷30=4小时。'}],
+  money:[{q:'1元等于多少角？',a:'1元=10角，1角=10分。'}],
+  clock1:[{q:'时针指向7，分针指向12，是几时？',a:'7时（整时）。'}],
+  clock2:[{q:'1时等于多少分？',a:'1时=60分。'}],
+  timesec:[{q:'一节课40分等于多少秒？',a:'40×60=2400秒。'}],
+  len:[{q:'黑板长约3（ ），填 m 还是 cm？',a:'填m（米），3cm太短不符合实际。'}],
+  mass:[{q:'1袋盐约500（ ），填克还是千克？',a:'填克（g）。'}],
+  area_unit:[{q:'一张课桌面的面积约24（ ），填cm²还是dm²？',a:'填dm²（平方分米）。'}],
+  vol_unit:[{q:'一桶矿泉水约18（ ），填 L 还是 mL？',a:'填L（升）。'}],
+  solid:[{q:'长方体有几个面？相对的面有什么特点？',a:'6个面，相对的面完全相同。'}],
+  plane:[{q:'下面哪个是圆：正方形、圆、三角形？',a:'圆。它们都属于平面图形。'}],
+  line_angle:[{q:'三角板上最大的角是什么角？',a:'直角（90°）。'}],
+  tri_type:[{q:'等边三角形的每个角是多少度？',a:'3个角相等，都是60°。'}],
+  para_trap:[{q:'平行四边形的对边有什么关系？',a:'对边平行且相等。'}],
+  perimeter:[{q:'长方形长5cm、宽3cm，周长是多少？',a:'(5+3)×2=16cm。'}],
+  area_intro:[{q:'比较两个图形面积的大小，看什么？',a:'看各自包含的单位方格数量，包含的多的面积大。'}],
+  area_rect:[{q:'长4cm、宽3cm的长方形，面积是多少？',a:'4×3=12（cm²）。'}],
+  area_para:[{q:'平行四边形底6cm、高4cm，面积是多少？',a:'底×高=6×4=24（cm²）。'}],
+  area_tri:[{q:'三角形底8cm、高5cm，面积是多少？',a:'底×高÷2=8×5÷2=20（cm²）。'}],
+  area_trap:[{q:'梯形上底3cm、下底5cm、高4cm，面积是多少？',a:'(3+5)×4÷2=16（cm²）。'}],
+  area_comp:[{q:'组合图形怎么求面积？',a:'分割或添补成熟悉的基本图形（长方形、三角形等），再求面积和。'}],
+  circle:[{q:'半径2cm的圆，周长和面积大约是多少？（π取3.14）',a:'C=2πr=12.56cm；S=πr²=12.56cm²。'}],
+  surface:[{q:'棱长2cm的正方体表面积是多少？',a:'6个面，每面2×2=4cm²，共6×4=24cm²。'}],
+  volume:[{q:'长方体长3cm、宽2cm、高4cm，体积是多少？',a:'3×2×4=24（cm³）。'}],
+  cyl_cone:[{q:'圆柱底面积16cm²、高5cm，与它等底等高的圆锥体积是多少？',a:'圆柱体积=16×5=80cm³；圆锥=80÷3≈26.7cm³。'}],
+  direction:[{q:'面向北站立，背后是（ ）。',a:'南；左西右东。'}],
+  observe:[{q:'从正面观察一个杯子，看到的大致形状是？',a:'近似长方形（杯口看作椭圆），不同方向看到的形状可能不同。'}],
+  transform:[{q:'电梯升降属于哪种图形运动？',a:'平移（沿直线移动，形状大小不变）。'}],
+  coord:[{q:'第2列第3行用数对怎样表示？',a:'(2,3)，先列后行。'}],
+  classify:[{q:'把苹果、香蕉、苹果、橘子按种类分成两类。',a:'苹果类：2个；其他水果类：香蕉、橘子。'}],
+  picto:[{q:'1个○表示2人，图中有3个○，一共几人？',a:'3×2=6人。'}],
+  bar:[{q:'条形图一格代表5，最高的柱子有4格，对应多少？',a:'4×5=20。'}],
+  linechart:[{q:'折线整体向上走，说明数量在怎样变化？',a:'呈上升趋势，数量在增加。'}],
+  pie:[{q:'扇形统计图里占25%的部分表示什么？',a:'表示占总体的四分之一（1/4）。'}],
+  average:[{q:'三科成绩90、80、70，平均分是多少？',a:'(90+80+70)÷3=80。'}],
+  median_mode:[{q:'数据2,3,3,5,8的中位数和众数分别是？',a:'排序后中间是3（中位数），出现最多的是3（众数）。'}],
+  possibility:[{q:'抛一枚硬币，正面朝上可能发生吗？',a:'可能，属于不确定事件（也可能反面朝上）。'}],
+  pattern:[{q:'按规律填数：1,3,5,7,（ ）。',a:'9，规律是每次加2。'}],
+  combine:[{q:'2件上衣和3条裤子，一共有几种搭配？',a:'2×3=6种（搭配问题用乘法）。'}],
+  tree:[{q:'在20m小路一侧植树，每隔5m种1棵（两端都种），共几棵？',a:'间隔数20÷5=4，棵数=4+1=5棵。'}],
+  chicken:[{q:'鸡兔同笼，共8个头、22只脚，兔有几只？',a:'假设全鸡：8×2=16脚，多22-16=6脚，每换1只兔多2脚，兔=6÷2=3只。'}],
+  code:[{q:'身份证号码中第7~14位表示什么？',a:'出生日期（年、月、日）。'}],
+  optimize:[{q:'烧水的同时洗茶杯、拿茶叶，为什么更省时？',a:'因为烧水与准备可以同时进行（统筹优化）。'}],
+  pigeon:[{q:'把5个苹果放进4个抽屉，至少有1个抽屉不少于几个？',a:'至少有1个抽屉不少于2个（鸽巢原理）。'}]
+};
+
+const svg = document.getElementById('graph');
+const SVGNS='http://www.w3.org/2000/svg';
+let W = svg.clientWidth, H = svg.clientHeight;
+
+// 初始化节点坐标（环形随机）
+NODES.forEach((n,i)=>{
+  const a = i/NODES.length*Math.PI*2;
+  n.x = W/2 + Math.cos(a)*Math.min(W,H)*0.32 + (Math.random()-.5)*40;
+  n.y = H/2 + Math.sin(a)*Math.min(W,H)*0.32 + (Math.random()-.5)*40;
+  n.vx=0; n.vy=0;
+});
+
+// 边：pre 表示指向更早知识（n -> pre）
+const edges = [];
+NODES.forEach(n=>{
+  (n.pre||[]).forEach(p=>{ if(byId[p]) edges.push({s:n.id,t:p,kind:'pre'}); });
+  (n.rel||[]).forEach(r=>{ if(byId[r] && !edges.some(e=>e.kind==='rel'&&((e.s===n.id&&e.t===r)||(e.s===r&&e.t===n.id)))) edges.push({s:n.id,t:r,kind:'rel'}); });
+});
+
+// 邻接（用于高亮）：从某点出发，pre 向上、post 向下、rel 横向
+function neighbors(id){
+  const set=new Set();
+  NODES.forEach(n=>{
+    (n.pre||[]).forEach(p=>{ if(p===id) set.add(n.id); });
+    (n.post||[]).forEach(p=>{ if(p===id) set.add(n.id); });
+    (n.rel||[]).forEach(p=>{ if(p===id) set.add(n.id); });
+    if(n.id===id){ (n.pre||[]).forEach(x=>set.add(x)); (n.post||[]).forEach(x=>set.add(x)); (n.rel||[]).forEach(x=>set.add(x)); }
+  });
+  return set;
+}
+
+/* ---------- 力导向模拟 ---------- */
+const edgeLayer=document.createElementNS(SVGNS,'g');
+const nodeLayer=document.createElementNS(SVGNS,'g');
+svg.appendChild(edgeLayer); svg.appendChild(nodeLayer);
+
+const edgeEls = edges.map(e=>{
+  const l=document.createElementNS(SVGNS,'line');
+  l.setAttribute('class','edge');
+  edgeLayer.appendChild(l); return l;
+});
+const nodeEls = NODES.map(n=>{
+  const g=document.createElementNS(SVGNS,'g'); g.setAttribute('class','node');
+  const c=document.createElementNS(SVGNS,'circle');
+  c.setAttribute('r', 9); c.setAttribute('fill', COLOR[n.domain]);
+  const t=document.createElementNS(SVGNS,'text');
+  t.setAttribute('text-anchor','middle'); t.setAttribute('dy','3'); t.textContent=n.name;
+  g.appendChild(c); g.appendChild(t);
+  g.addEventListener('click',ev=>{ev.stopPropagation(); if(justLongPressed){justLongPressed=false;return;} select(n.id);});
+  g.addEventListener('pointerdown',ev=>onNodeDown(ev,n));
+  g.addEventListener('dblclick',ev=>{ev.stopPropagation(); openDetail(n.id);});
+  g.addEventListener('contextmenu',ev=>{ev.preventDefault(); ev.stopPropagation(); openDetail(n.id);});
+  nodeLayer.appendChild(g); return {g,n,c,t};
+});
+
+let selected=null, dragging=null, justLongPressed=false;
+
+function tick(){
+  const k=0.012;
+  // 斥力
+  for(let i=0;i<NODES.length;i++)for(let j=i+1;j<NODES.length;j++){
+    const a=NODES[i],b=NODES[j];
+    let dx=a.x-b.x, dy=a.y-b.y; let d2=dx*dx+dy*dy||1;
+    let f=900/d2; let d=Math.sqrt(d2);
+    let fx=dx/d*f, fy=dy/d*f;
+    a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
+  }
+  // 引力（边）
+  edges.forEach(e=>{
+    const a=byId[e.s],b=byId[e.t];
+    let dx=b.x-a.x, dy=b.y-a.y; let d=Math.sqrt(dx*dx+dy*dy)||1;
+    let f=(d-70)*0.02; let fx=dx/d*f, fy=dy/d*f;
+    a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
+  });
+  // 向心力 + 积分
+  NODES.forEach(n=>{
+    if(dragging===n) return;
+    n.vx += (W/2-n.x)*0.002; n.vy += (H/2-n.y)*0.002;
+    n.vx*=0.85; n.vy*=0.85;
+    n.x+=n.vx*k*4; n.y+=n.vy*k*4;
+    n.x=Math.max(20,Math.min(W-20,n.x)); n.y=Math.max(20,Math.min(H-20,n.y));
+  });
+  // 渲染
+  edges.forEach((e,i)=>{
+    const a=byId[e.s],b=byId[e.t];
+    const l=edgeEls[i];
+    l.setAttribute('x1',a.x); l.setAttribute('y1',a.y);
+    l.setAttribute('x2',b.x); l.setAttribute('y2',b.y);
+  });
+  nodeEls.forEach(o=>{
+    o.g.setAttribute('transform',`translate(${o.n.x},${o.n.y})`);
+  });
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* ---------- 选择 / 高亮 ---------- */
+function select(id){
+  selected=id;
+  const nb=neighbors(id);
+  nodeEls.forEach(o=>{
+    const isSel=o.n.id===id;
+    const isNb=nb.has(o.n.id);
+    o.g.classList.toggle('sel',isSel);
+    o.g.classList.toggle('dim', !(isSel||isNb));
+  });
+  edgeEls.forEach((l,i)=>{
+    const e=edges[i];
+    const hot=(e.s===id||e.t===id);
+    l.classList.toggle('hot',hot);
+    l.classList.toggle('dim',!hot && !nb.has(e.s) && !nb.has(e.t));
+    l.style.opacity = (hot || (nb.has(e.s)&&nb.has(e.t))) ? 1 : 0.12;
+  });
+  renderSide(byId[id]);
+  updateChatCur();
+}
+
+function renderSide(n){
+  const side=document.getElementById('side');
+  const pre=(n.pre||[]).filter(id=>byId[id]).map(id=>chip(id,'pre'));
+  const post=(n.post||[]).filter(id=>byId[id]).map(id=>chip(id,'post'));
+  const rel=(n.rel||[]).filter(id=>byId[id]).map(id=>chip(id,'rel'));
+  // 年级分布条：本知识点的“影响年级跨度”
+  const span=new Set();
+  collectDown(n.id,span); collectUp(n.id,span); span.add(n.id);
+  const band=GRADES.map(g=>{
+    const on=span.has(g);
+    return `<div class="g ${on?'on':''}">${g}</div>`;
+  }).join('');
+  side.innerHTML=`
+    <h2>${n.name}</h2>
+    <div class="grade">领域：${n.domain} ｜ 引入年级：${n.grade}</div>
+    <div class="desc">${n.desc}</div>
+    <div class="grp"><div class="lab">⬅ 前置链（回溯到根）</div>${pre.length?pre.join(''):'<span class="empty">无（起点知识）</span>'}</div>
+    <div class="grp"><div class="lab">后继链（追踪到终点）➡</div>${post.length?post.join(''):'<span class="empty">无（终点知识）</span>'}</div>
+    <div class="grp"><div class="lab">↔ 横向关联</div>${rel.length?rel.join(''):'<span class="empty">无</span>'}</div>
+    <div class="grp"><div class="lab">本知识点关联的年级跨度</div><div class="band">${band}</div></div>
+    <button id="sideExBtn" class="m-locate" style="width:100%;margin-top:4px">📘 看例题讲解</button>
+    <details><summary>说明</summary><p>“前置链/后继链”按 pre→post 关系纵向串联；“横向关联”是同一阶段互补的知识点。点击任意 chip 可继续跳转串联。</p></details>
+  `;
+  side.querySelector('#sideExBtn').onclick=()=>openDetail(n.id);
+}
+function chip(id,cls){
+  const n=byId[id];
+  return `<span class="chip ${cls}" data-id="${id}">${n.name}（${n.grade}）</span>`;
+}
+function collectDown(id,set){ (byId[id].post||[]).forEach(p=>{ if(!set.has(p)){set.add(p);collectDown(p,set);} }); }
+function collectUp(id,set){ (byId[id].pre||[]).forEach(p=>{ if(!set.has(p)){set.add(p);collectUp(p,set);} }); }
+
+document.getElementById('side').addEventListener('click',e=>{
+  const c=e.target.closest('.chip'); if(c) select(c.dataset.id);
+});
+
+/* ---------- 拖拽 + 长按弹出详情 ---------- */
+let lpTimer=null, lpStart=null;
+function onNodeDown(ev,n){
+  ev.stopPropagation();
+  justLongPressed=false;
+  dragging=n; svg.classList.add('grabbing');      // 立即冻结该节点，避免被力导向推走
+  lpStart={x:ev.clientX,y:ev.clientY};
+  let moved=false;
+  lpTimer=setTimeout(()=>{ justLongPressed=true; openDetail(n.id); }, 500);
+  const move=ev2=>{
+    if(!moved){ const dx=ev2.clientX-lpStart.x, dy=ev2.clientY-lpStart.y;
+      if(Math.hypot(dx,dy)>14){ moved=true; clearTimeout(lpTimer); } }   // 明显拖动才取消长按
+    if(moved){ const r=svg.getBoundingClientRect();                        // 仅确认拖拽后才移动节点
+      n.x=ev2.clientX-r.left; n.y=ev2.clientY-r.top; n.vx=0;n.vy=0; }
+  };
+  const cleanup=()=>{
+    dragging=null; svg.classList.remove('grabbing');
+    window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',cleanup);
+  };
+  const up=()=>{ clearTimeout(lpTimer); cleanup(); };  // pointercancel 不清除定时器，保证触屏长按仍触发
+  window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',cleanup);
+}
+
+/* ---------- 知识点详情 + 例题讲解（长按） ---------- */
+const modal=document.getElementById('modal');
+const modalBody=document.getElementById('modalBody');
+function openDetail(id){ loadDetail(id); modal.classList.add('show'); }
+function closeModal(){ modal.classList.remove('show'); }
+function loadDetail(id){
+  const n=byId[id]; if(!n) return;
+  const chip=(i,cls)=>{ const m=byId[i]; return '<span class="chip '+cls+'" data-id="'+i+'">'+m.name+'（'+m.grade+'）</span>'; };
+  const pre=(n.pre||[]).filter(i=>byId[i]).map(i=>chip(i,'pre'));
+  const post=(n.post||[]).filter(i=>byId[i]).map(i=>chip(i,'post'));
+  const rel=(n.rel||[]).filter(i=>byId[i]).map(i=>chip(i,'rel'));
+  const ex=(EXAMPLES[id]||[]).map(e=>'<div class="ex"><div class="exq">'+e.q+'</div><div class="exa">'+e.a+'</div></div>').join('');
+  const preAll=new Set(), postAll=new Set(); collectUp(n.id,preAll); collectDown(n.id,postAll);
+  const preArr=[...preAll].sort((a,b)=>byId[a].order-byId[b].order);
+  const postArr=[...postAll].sort((a,b)=>byId[a].order-byId[b].order);
+  const ck=ids=> ids.length ? ids.map(i=>{const m=byId[i]; return '<div class="ck"><span class="ck-name">'+m.name+'（'+m.grade+'）</span>'+m.desc+'</div>';}).join('') : '<span class="empty">无</span>';
+  modalBody.innerHTML=
+    '<div class="m-head"><span class="m-domain" style="background:'+COLOR[n.domain]+'">'+n.domain+'</span><span class="m-grade">'+n.grade+'</span></div>'+
+    '<h2 class="m-title">'+n.name+'</h2>'+
+    '<div class="m-desc">'+n.desc+'</div>'+
+    '<div class="grp"><div class="lab">📚 串联讲解 · 前置来路（从哪来）</div>'+ck(preArr)+'</div>'+
+    '<div class="grp"><div class="lab">📚 串联讲解 · 后续去路（到哪去）</div>'+ck(postArr)+'</div>'+
+    '<div class="grp"><div class="lab">⬅ 前置链（可点跳转）</div>'+(pre.length?pre.join(''):'<span class="empty">无（起点知识）</span>')+'</div>'+
+    '<div class="grp"><div class="lab">后继链（可点跳转）➡</div>'+(post.length?post.join(''):'<span class="empty">无（终点知识）</span>')+'</div>'+
+    '<div class="grp"><div class="lab">↔ 横向关联</div>'+(rel.length?rel.join(''):'<span class="empty">无</span>')+'</div>'+
+    '<div class="grp"><div class="lab">📘 例题讲解</div>'+(ex||'<span class="empty">该题暂无例题，可在 EXAMPLES 中补充。</span>')+'</div>'+
+    '<button class="m-locate" id="locateBtn">在图谱中定位此点</button>'+
+    '<button class="m-locate" id="detailChatBtn" style="margin-top:10px;background:#9333ea">💬 对话互动·出练习题</button>';
+  modalBody.querySelector('#locateBtn').onclick=()=>{ select(id); closeModal(); };
+  modalBody.querySelector('#detailChatBtn').onclick=()=>{ openChat(); const nn=byId[id]; chatInput.value='请基于【'+nn.name+'】出3道练习题（含答案与分步讲解）'; chatInput.focus(); };
+}
+modalBody.addEventListener('click',e=>{ const c=e.target.closest('.chip'); if(c){ selected=c.dataset.id; updateChatCur(); loadDetail(c.dataset.id); } });
+document.getElementById('modalClose').onclick=closeModal;
+modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+svg.addEventListener('click',()=>{ /* 点击空白不取消，保持选择 */ });
+
+/* ---------- 过滤 / 搜索 ---------- */
+document.getElementById('domainFilter').addEventListener('change',applyFilter);
+document.getElementById('search').addEventListener('input',applyFilter);
+document.getElementById('reset').addEventListener('click',()=>{
+  selected=null; document.getElementById('domainFilter').value=''; document.getElementById('search').value='';
+  nodeEls.forEach(o=>o.g.classList.remove('sel','dim'));
+  edgeEls.forEach(l=>{l.classList.remove('hot','dim');l.style.opacity=1;});
+  document.getElementById('side').innerHTML='<div class="empty">← 在左侧点选一个知识点<br><br>或从搜索引擎输入框定位。</div>';
+  updateChatCur();
+});
+
+function applyFilter(){
+  const dom=document.getElementById('domainFilter').value;
+  const q=document.getElementById('search').value.trim();
+  nodeEls.forEach(o=>{
+    const okD = !dom || o.n.domain===dom;
+    const okQ = !q || o.n.name.includes(q) || o.n.id.includes(q);
+    o.g.style.display = (okD&&okQ)?'':'none';
+  });
+  if(q && !dom){
+    const hit=NODES.find(n=>n.name.includes(q));
+    if(hit) select(hit.id);
+  }
+}
+
+window.addEventListener('resize',()=>{ W=svg.clientWidth; H=svg.clientHeight; });
+
+/* ===================== 对话互动：出练习题 / 追问讲解 ===================== */
+const chat = document.getElementById('chat');
+const chatMsgs = document.getElementById('chatMsgs');
+const chatCur = document.getElementById('chatCur');
+const chatInput = document.getElementById('chatInput');
+const chatSet = document.getElementById('chatSet');
+let chatHistory = [];      // [{role:'user'|'assistant', content}]
+let chatBusy = false;
+
+function listNames(ids){ return (ids||[]).filter(i=>byId[i]).map(i=>byId[i].name+'（'+byId[i].grade+'）').join('、') || '无'; }
+
+// 当前知识点的完整上下文（前置/后续串联），供 AI 或复制提示词使用
+function chatContextText(id){
+  const n = byId[id]; if(!n) return '（未选知识点）';
+  const preAll=new Set(), postAll=new Set(); collectUp(id,preAll); collectDown(id,postAll);
+  const sortFn=(a,b)=>byId[a].order-byId[b].order;
+  const preList=[...preAll].sort(sortFn).map(i=>byId[i].name+'（'+byId[i].grade+'）').join('、')||'无';
+  const postList=[...postAll].sort(sortFn).map(i=>byId[i].name+'（'+byId[i].grade+'）').join('、')||'无';
+  return `当前知识点：【${n.name}】（领域：${n.domain}，引入年级：${n.grade}）
+简介：${n.desc}
+前置来路（需先掌握）：${preList}
+后续去路（学完去哪）：${postList}
+横向关联：${listNames(n.rel)}`;
+}
+function systemPrompt(id){
+  const ctx = chatContextText(id);
+  return `你是一位耐心、鼓励式的小学数学辅导老师，依据北师大版教材体系。
+${ctx}
+
+辅导要求：
+1. 学生要求出练习题时，出 2~3 道贴合该知识点、符合对应年级难度的题目，必须附答案与分步讲解；
+2. 学生表示不懂时，用小学生能理解的语言、结合生活例子耐心解释，必要时回溯其前置来路；
+3. 语言简洁、正向鼓励，不超出小学范围；可用 emoji 让讲解更亲切。
+
+【重要排版约束】请用纯文本回答：不要使用任何 Markdown 符号（包括 #、##、###、**、*、-、>、反引号、数字+点列表等）。需要分点时用自然换行即可，需要强调时直接写文字而不要加 **。标题、列表、加粗会由前端自动渲染，你只需输出干净的中文句子。`;
+}
+function updateChatCur(){
+  chatCur.textContent = selected ? ('当前：'+byId[selected].name) : '未选知识点';
+}
+function renderMd(t){
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const bold=s=>s.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+  const lines=t.split('\n'); const out=[]; let inList=false;
+  for(const ln of lines){
+    if(/^###\s+/.test(ln)){ if(inList){out.push('</ul>');inList=false;} out.push('<div class="hd">'+esc(ln.replace(/^###\s+/,''))+'</div>'); }
+    else if(/^##\s+/.test(ln)){ if(inList){out.push('</ul>');inList=false;} out.push('<div class="hd">'+esc(ln.replace(/^##\s+/,''))+'</div>'); }
+    else if(/^#\s+/.test(ln)){ if(inList){out.push('</ul>');inList=false;} out.push('<div class="hd">'+esc(ln.replace(/^#\s+/,''))+'</div>'); }
+    else if(/^[\*\-]\s+/.test(ln)){ if(!inList){out.push('<ul>');inList=true;} out.push('<li>'+bold(esc(ln.replace(/^[\*\-]\s+/,'')))+'</li>'); }
+    else if(/^\d+\.\s+/.test(ln)){ if(!inList){out.push('<ul>');inList=true;} out.push('<li>'+bold(esc(ln.replace(/^\d+\.\s+/,'')))+'</li>'); }
+    else{ if(inList){out.push('</ul>');inList=false;} out.push(bold(esc(ln))); }
+  }
+  if(inList) out.push('</ul>'); return out.join('');
+}
+function addMsg(role, text){
+  const d=document.createElement('div');
+  d.className='msg '+(role==='user'?'u':(role==='system'?'sys':'a'));
+  if(role==='assistant'){
+    const body=document.createElement('div'); body.innerHTML=renderMd(text); d.appendChild(body);
+    const sp=document.createElement('button'); sp.className='speak'; sp.textContent='🔊 朗读';
+    sp.onclick=()=>speakText(text, sp);
+    d.appendChild(sp);
+  } else {
+    const span=document.createElement('span'); span.textContent=text; d.appendChild(span);
+  }
+  chatMsgs.appendChild(d); chatMsgs.scrollTop=chatMsgs.scrollHeight;
+  return d;
+}
+function openChat(){
+  chat.classList.add('show'); updateChatCur();
+  if(!selected) addMsg('system','先点选一个知识点，我就能基于它给你出练习题、讲解哦～');
+  chatInput.focus();
+}
+function closeChat(){ chat.classList.remove('show'); }
+
+document.getElementById('chatFab').onclick=openChat;
+document.getElementById('chatClose').onclick=closeChat;
+document.getElementById('chatGear').onclick=()=>chatSet.classList.toggle('show');
+
+// 设置读写（仅本地）
+(function(){
+  const ep=localStorage.getItem('bsd_api_endpoint'), ky=localStorage.getItem('bsd_api_key'), md=localStorage.getItem('bsd_api_model');
+  if(ep) document.getElementById('setEndpoint').value=ep;
+  if(md) document.getElementById('setModel').value=md;
+  if(ky) document.getElementById('setKey').value=ky;
+})();
+document.getElementById('setSave').onclick=()=>{
+  const ep=document.getElementById('setEndpoint').value.trim();
+  const md=document.getElementById('setModel').value.trim();
+  const ky=document.getElementById('setKey').value.trim();
+  if(ep) localStorage.setItem('bsd_api_endpoint',ep);
+  if(md) localStorage.setItem('bsd_api_model',md);
+  if(ky) localStorage.setItem('bsd_api_key',ky);
+  addMsg('system','已保存 API 设置（仅存本地浏览器）。现在可以直接对话了。');
+};
+
+// 快捷指令
+document.getElementById('chatQuick').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.q==='清空对话'){ chatHistory=[]; chatMsgs.innerHTML=''; addMsg('system','对话已清空。'); return; }
+  sendChat(b.dataset.q);
+});
+
+function buildPromptForCopy(text){
+  const ctx = selected ? chatContextText(selected) : '（未选知识点）';
+  return `@skill:beishida-math-knowledge\n（辅导上下文）\n${ctx}\n\n学生问题：${text}`;
+}
+function execCopy(text){
+  const ta=document.createElement('textarea');
+  ta.value=text; ta.setAttribute('readonly','');
+  ta.style.position='fixed'; ta.style.top='-9999px'; ta.style.left='-9999px';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select(); ta.setSelectionRange(0,text.length);
+  let ok=false;
+  try{ ok=document.execCommand('copy'); }catch(e){ ok=false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+function copyText(text){
+  if(navigator.clipboard && window.isSecureContext){
+    return navigator.clipboard.writeText(text).then(()=>true).catch(()=>execCopy(text));
+  }
+  return Promise.resolve(execCopy(text));
+}
+function copyPromptNow(){
+  const text=chatInput.value.trim() || '请基于当前知识点出3道练习题（含答案与分步讲解）';
+  const prompt=buildPromptForCopy(text);
+  copyText(prompt).then(ok=>{
+    if(ok) addMsg('system','已复制提示词到剪贴板，去 WorkBuddy 粘贴发送即可。');
+    else addMsg('system','自动复制未生效，请长按下方消息选中文字复制：\n\n'+prompt);
+  });
+}
+document.getElementById('chatCopy').onclick=copyPromptNow;
+
+async function sendChat(presetText){
+  const text = (presetText!=null) ? presetText : chatInput.value.trim();
+  if(!text) return;
+  if(!selected){ addMsg('system','请先点选一个知识点，我才能基于它出题/讲解。'); return; }
+  chatInput.value='';
+  addMsg('user', text);
+  chatHistory.push({role:'user', content:text});
+
+  const endpoint=localStorage.getItem('bsd_api_endpoint');
+  const key=localStorage.getItem('bsd_api_key');
+  if(!endpoint || !key){
+    // 降级：复制提示词，去 WorkBuddy 问
+    const prompt=buildPromptForCopy(text);
+    copyText(prompt).then(ok=>{
+      if(ok){
+        addMsg('assistant','（未配置 API Key）已把包含上下文的提示词复制到剪贴板 ✅\n打开 WorkBuddy 粘贴并发送，技能就会基于【'+byId[selected].name+'】给你出练习题 / 讲解。继续追问也直接在那边说就行。');
+      } else {
+        addMsg('assistant','（未配置 API Key，自动复制不可用）请长按下方提示词选中复制，然后去 WorkBuddy 发送：\n\n'+prompt);
+      }
+    });
+    return;
+  }
+  chatBusy=true; document.getElementById('chatSend').disabled=true;
+  const thinking=addMsg('assistant','思考中…');
+  try{
+    const model=localStorage.getItem('bsd_api_model')||'gpt-4o-mini';
+    const messages=[{role:'system',content:systemPrompt(selected)}, ...chatHistory.map(m=>({role:m.role,content:m.content}))];
+    const resp=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,messages:messages,temperature:0.7})});
+    if(!resp.ok){ const t=await resp.text(); throw new Error('API '+resp.status+': '+t.slice(0,200)); }
+    const data=await resp.json();
+    const ans=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'（无返回内容）';
+    thinking.remove();
+    addMsg('assistant', ans);
+    chatHistory.push({role:'assistant', content:ans});
+  }catch(err){
+    thinking.remove();
+    const prompt=buildPromptForCopy(text);
+    addMsg('assistant','⚠️ 调用失败：'+err.message+'\n已为你生成提示词，点 📋 复制去 WorkBuddy 问即可：\n\n'+prompt);
+  }finally{
+    chatBusy=false; document.getElementById('chatSend').disabled=false;
+  }
+}
+document.getElementById('chatSend').onclick=()=>sendChat();
+chatInput.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendChat(); } });
+
+/* ===================== 语音：朗读（🔊） ===================== */
+let speaking=false, cachedVoices=[];
+function loadVoices(){ if('speechSynthesis' in window) cachedVoices=window.speechSynthesis.getVoices(); }
+if('speechSynthesis' in window){ loadVoices(); window.speechSynthesis.onvoiceschanged=loadVoices; }
+
+function speakText(text, btn){
+  if(!('speechSynthesis' in window)){ addMsg('system','当前浏览器不支持语音朗读（请换 Chrome / Edge 打开）。'); return; }
+  const vs=window.speechSynthesis.getVoices();
+  if(vs.length) cachedVoices=vs;
+  if(cachedVoices.length===0){
+    addMsg('system','🔊 朗读失败：当前设备/浏览器没有可用的语音（多半是没装中文语音包）。\n安卓：设置 → 系统 → 语言与输入法 → 文字转语音(TTS) → 点引擎右侧齿轮 → 安装语音数据 → 选“中文(普通话)”。装好后用 Chrome 重新打开本页即可。');
+  }
+  if(speaking){ window.speechSynthesis.cancel(); speaking=false; document.querySelectorAll('.speak').forEach(b=>b.textContent='🔊 朗读'); return; }
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='zh-CN';
+  const zh=cachedVoices.find(v=>/zh|cmn|Chinese/i.test(v.lang+' '+v.name));
+  if(zh) u.voice=zh;
+  u.onend=()=>{ speaking=false; if(btn) btn.textContent='🔊 朗读'; };
+  u.onerror=(e)=>{ speaking=false; if(btn) btn.textContent='🔊 朗读'; addMsg('system','🔊 朗读出错：'+(e.error||'未知')+'（若提示无语音模型，请按上一条安装中文语音包）。'); };
+  speaking=true; if(btn) btn.textContent='⏹ 停止';
+  try{ window.speechSynthesis.speak(u); }catch(e){ speaking=false; if(btn) btn.textContent='🔊 朗读'; addMsg('system','🔊 朗读失败：'+e.message); }
+}
+</script>
+<script>
+if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+</script>
+</body>
+</html>
