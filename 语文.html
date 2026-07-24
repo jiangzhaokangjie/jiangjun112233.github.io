@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>小学语文 · 生字练读图谱</title>
+<meta name="theme-color" content="#1d4ed8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="语文">
+<!-- 笔顺动画 + 拼音 -->
+<script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5.0/dist/hanzi-writer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.18.4/dist/index.js"></script>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --line:#334155; --txt:#e2e8f0; --muted:#94a3b8;
+    --orange:#f59e0b; --blue:#3b82f6; --red:#ef4444; --green:#16a34a;
+    --num:#2563eb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+  header{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:20;background:var(--bg)}
+  header h1{font-size:16px;margin:0;font-weight:600}
+  header .hint{font-size:12px;color:var(--muted)}
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto}
+  textarea{width:100%;min-height:96px;resize:vertical;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px;line-height:1.5}
+  .sec-title{font-size:13px;color:var(--muted);margin:18px 0 8px;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .wcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;text-align:center}
+  .wcard .w{font-size:30px;font-weight:700;line-height:1.1}
+  .wcard .py{font-size:14px;color:var(--orange);margin-top:2px;font-weight:600}
+  .wcard .gridbox{width:104px;height:104px;margin:8px auto 4px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer}
+  .wcard .zc{font-size:12px;color:var(--muted);line-height:1.6;min-height:18px}
+  .wcard .zc span{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:1px 7px;margin:2px 3px}
+  .wcard .ipa-row{display:flex;gap:6px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+  .wcard .ipa-row .ipa-play{margin:0;display:inline-flex;align-items:center;gap:3px}
+  .wcard .ipa-play{background:var(--orange);color:#1a1205;border:none;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;font-weight:700}
+  .wcard .ipa-fb{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:3px}
+  .wcard .ipa-fb.rec{background:#ef4444;animation:pulseRec 1s infinite}
+  .wcard .ipa-fb.busy{background:#f59e0b;cursor:wait}
+  .wcard.hard{border-color:var(--red)}
+  @keyframes pulseRec{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  .result-title{font-size:12px;color:var(--muted);margin:10px 0 2px}
+  /* 详情弹窗 */
+  .sheet{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:40;align-items:flex-end}
+  .sheet.show{display:flex}
+  .sheet .box{background:var(--bg);width:100%;max-width:760px;margin:0 auto;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
+  .sheet .top{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  .sheet .ltr{font-size:40px;font-weight:800;color:var(--blue)}
+  .sheet .em{font-size:48px}
+  .sheet .close{margin-left:auto;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 12px;cursor:pointer}
+  .sheet .py{font-size:18px;color:var(--orange);font-weight:700;margin-bottom:6px}
+  .sheet .gridbox{width:200px;height:200px;margin:10px auto;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer}
+  .sheet .zc{margin:8px 0}
+  .sheet .zc .t{font-size:13px;color:var(--muted);margin-bottom:4px}
+  .sheet .zc .items{display:flex;flex-wrap:wrap;gap:6px}
+  .sheet .zc .items span{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px 10px;font-size:13px}
+  .sheet .desc{font-size:14px;color:var(--txt);line-height:1.7;margin:8px 0}
+  .actions{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;justify-content:center}
+  .actions button{border:none;border-radius:12px;padding:11px 16px;font-size:15px;cursor:pointer}
+  .actions .play{background:var(--orange);color:#1a1205;font-size:22px;width:58px;height:58px;border-radius:50%}
+  .actions .rec{background:#a855f7;color:#fff;font-size:20px;width:58px;height:58px;border-radius:50%}
+  .actions .rec.rec{background:var(--red);animation:pulseRec 1s infinite}
+  .actions .rec.on{background:var(--red)}
+  .actions .mini{background:var(--panel);color:var(--txt);border:1px solid var(--line)}
+  .grid-2{display:flex;gap:10px;flex-wrap:wrap}
+  .grid-2 .b{flex:1;min-width:140px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .grid-2 .b .h{font-size:13px;color:var(--muted);margin-bottom:6px}
+  .grid-2 .b .body{font-size:14px;line-height:1.7}
+  /* 句子分析 */
+  .sent{line-height:2.4;font-size:17px;word-break:break-word}
+  .tree{margin:10px 12px;padding:10px 12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;font-size:14.5px;line-height:1.8;color:var(--txt);overflow-x:auto}
+  .tree .hd{font-weight:700;color:#fbbf24;margin:2px 0 6px}
+  .tree .hd.h1{font-size:17px} .tree .hd.h2{font-size:16px} .tree .hd.h3{font-size:15px}
+  .tree ul{margin:3px 0;padding-left:18px;list-style:disc}
+  .tree li{margin:2px 0}
+  .tree b{color:#fde68a}
+  /* 聊天 */
+  .fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:30;width:54px;height:54px;border-radius:50%;border:none;background:var(--blue);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+  .chat{position:fixed;left:0;right:0;bottom:0;z-index:35;background:var(--panel);border-top:1px solid var(--line);border-radius:16px 16px 0 0;display:none;flex-direction:column;max-height:78vh;max-width:760px;margin:0 auto}
+  .chat.show{display:flex}
+  .chat-hd{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .chat-hd .tt{font-size:14px;font-weight:600;flex:1}
+  .chat-hd .x{background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:4px 10px;cursor:pointer}
+  .chat-hd .gear{background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:16px}
+  .chat-msgs{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:88%;padding:9px 12px;border-radius:12px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+  .msg.u{background:var(--blue);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .msg.a{background:var(--bg);color:var(--txt);align-self:flex-start;border-bottom-left-radius:4px;line-height:1.7}
+  .msg.sys{background:transparent;color:var(--muted);font-size:12px;align-self:center;text-align:center}
+  .msg.a .speak{display:inline-block;margin-top:6px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:3px 9px;font-size:12px;cursor:pointer;color:var(--txt)}
+  .msg.a .hd{font-weight:700;margin:6px 0 4px;color:#fbbf24}
+  .msg.a ul{margin:4px 0;padding-left:20px}
+  .msg.a li{margin:2px 0}
+  .msg.a b{color:#fde68a}
+  .chat-in{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--line);align-items:flex-end}
+  .chat-in textarea{flex:1;resize:none;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:13px;height:44px;max-height:120px;line-height:1.4}
+  .chat-in button{border:none;background:var(--blue);color:#fff;border-radius:8px;padding:0 14px;font-size:14px;cursor:pointer}
+  /* 设置 */
+  .chat-set{display:none;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .chat-set.show{display:block}
+  .chat-set label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  .chat-set input{width:100%;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px}
+  .chat-set .sec-title{margin:14px 0 6px;font-size:13px;color:var(--txt);font-weight:600}
+  .chat-set .row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  .chat-set .save{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer}
+  .chat-set .ghost{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer}
+  .chat-set .hint{font-size:11px;color:var(--muted)}
+  /* 跟读反馈 */
+  .rec-toast{position:fixed;left:50%;top:22%;transform:translate(-50%,-50%);background:rgba(15,23,42,.94);color:#fff;padding:12px 18px;border-radius:14px;font-size:14px;z-index:9999;display:flex;align-items:center;gap:8px;box-shadow:0 8px 28px rgba(0,0,0,.5);max-width:86vw;text-align:center;line-height:1.5}
+  .rec-toast .dot{width:10px;height:10px;border-radius:50%;background:#ef4444;animation:pulseRec 1s infinite;flex:0 0 auto}
+  .rec-toast.ok{background:linear-gradient(135deg,#10b981,#059669);font-size:16px;padding:14px 22px}
+  .rec-toast.no{background:linear-gradient(135deg,#ef4444,#b91c1c)}
+  .confetti-canvas{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:9998}
+  .tabs{display:flex;gap:8px;padding:10px 16px 0}
+  .tab{padding:8px 14px;border-radius:10px 10px 0 0;background:var(--panel);border:1px solid var(--line);border-bottom:none;color:var(--muted);font-size:14px;cursor:pointer}
+  .tab.on{background:var(--bg);color:var(--txt);font-weight:600}
+  .wrap{max-width:980px;margin:0 auto;padding:0 16px 40px}
+  .sysmsg{font-size:12px;color:var(--muted);margin:6px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>📚 小学语文 · 生字练读图谱</h1>
+  <div class="toolbar">
+    <button class="ghost" id="openSet" style="background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 12px;cursor:pointer">⚙ 设置</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="sec-title">粘贴或输入一段课文 / 句子（自动提取生字、注音、组词、笔顺）</div>
+  <textarea id="input" placeholder="例如：春天来了，小草从地里探出头来，早开的野花一朵两朵……"></textarea>
+  <div class="toolbar" style="margin:10px 0 0">
+    <button id="btnAnalyze" style="background:var(--orange);color:#1a1205;border:none;border-radius:10px;padding:9px 18px;font-size:15px;font-weight:700;cursor:pointer">🔍 分析</button>
+    <button class="ghost" id="btnClear" style="background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 14px;font-size:13px;cursor:pointer">🗑 清空</button>
+  </div>
+
+  <div class="result-title" id="resultTitle" style="display:none"></div>
+  <div class="grid" id="wordGrid"></div>
+
+  <div class="sec-title">句子成分（豆包式思维导图，需设置里填 Agnes Key）</div>
+  <div class="tree" id="treeBox"><div class="sysmsg">先点「分析」生成短文，再点下方「分析句子」即可。若无 Key，可在 ⚙ 填入。</div></div>
+  <div class="toolbar" style="margin:8px 0 0">
+    <button id="btnSent" class="ghost" style="background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer">🌿 分析句子成分</button>
+  </div>
+</div>
+
+<!-- 详情弹窗 -->
+<div class="sheet" id="sheet">
+  <div class="box">
+    <div class="top">
+      <div class="ltr" id="dLtr"></div>
+      <div class="em" id="dEm">📖</div>
+      <button class="close" id="dClose">关闭</button>
+    </div>
+    <div class="py" id="dPy"></div>
+    <div class="gridbox" id="dGrid"></div>
+    <div class="zc" id="dZc"></div>
+    <div class="desc" id="dDesc"></div>
+    <div class="actions">
+      <button class="play" id="dPlay" title="朗读">🔊</button>
+      <button class="rec" id="dRec" title="跟读">🎤</button>
+      <button class="mini" id="dAsk">💬 问 AI 老师</button>
+    </div>
+  </div>
+</div>
+
+<!-- 聊天 -->
+<button class="fab" id="chatFab">💬</button>
+<div class="chat" id="chat">
+  <div class="chat-hd">
+    <div class="tt">AI 语文老师</div>
+    <button class="gear" id="chatGear">⚙</button>
+    <button class="x" id="chatClose">×</button>
+  </div>
+  <div class="chat-set" id="chatSet">
+    <label>API 地址（OpenAI 兼容，已预填 Agnes AI）</label>
+    <input id="setEndpoint" value="https://apihub.agnes-ai.com/v1/chat/completions">
+    <label>模型名</label>
+    <input id="setModel" value="agnes-2.0-flash">
+    <label>API Key（仅存本地浏览器，不上传）</label>
+    <input id="setKey" type="password" placeholder="在 platform.agnes-ai.com 创建 Key">
+    <div class="sec-title">🎤 讯飞语音识别（跟读必填）</div>
+    <label>讯飞 APPID</label>
+    <input id="setXfAppid" placeholder="在 console.xfyun.cn 免费创建应用获取">
+    <label>讯飞 APIKey</label>
+    <input id="setXfApikey" type="password" placeholder="应用的 APIKey">
+    <label>讯飞 APISecret</label>
+    <input id="setXfSecret" type="password" placeholder="应用的 APISecret">
+    <div class="row"><button class="save" id="setSave">保存</button><button class="ghost" id="setTestXf" type="button">🔧 测试讯飞</button><span class="hint">没 Key？用 📋 复制提示词去 WorkBuddy 问</span></div>
+  </div>
+  <div class="chat-msgs" id="chatMsgs"></div>
+  <div class="chat-in">
+    <textarea id="chatInput" placeholder="不懂就问，比如：为什么「火」先写两点再写人？"></textarea>
+    <button id="chatSend">发送</button>
+  </div>
+</div>
+
+<script>
+/* ===================== 数据：常用字组词 + 词语表 ===================== */
+const ZUOCI = {
+  '春':['春天','春风','春节','春游'],'天':['天空','天气','今天','冬天'],'来':['来去','回来','过来','未来'],
+  '了':['来了','好了','走了','笑了'],'小':['小鸟','小孩','小草','小刀'],'草':['草地','小草','花草','草原'],
+  '从':['从前','从来','从小','自从'],'地':['土地','地方','大地','草地'],'里':['里面','哪里','心里','家里'],
+  '探':['探头','探望','探路'],'出':['出来','出口','出入','出国'],'头':['头发','木头','点头','开头'],
+  '早':['早上','早晨','清早','早饭'],'开':['开关','开心','开花','打开'],'野':['野花','野外','野草','野兽'],
+  '花':['花朵','花园','花草','火花'],'朵':['花朵','云朵','一朵'],'两':['两个','两斤','两边','两天'],
+  '水':['水果','开水','河水','泪水'],'火':['火苗','火山','火车','火光'],'山':['高山','山水','火山','山上'],
+  '木':['木头','树木','木马','木板'],'人':['人们','人口','大人','好人'],'口':['门口','开口','人口','口语'],
+  '手':['手心','双手','手工','手指'],'目':['目标','目光','目前','科目'],'耳':['耳朵','耳机','耳目','右耳'],
+  '足':['足球','足够','手足','远足'],'日':['日子','日月','日记','生日'],'月':['月亮','月光','月份','月牙'],
+  '星':['星星','星空','火星','火星'],'云':['云朵','白云','乌云','云彩'],'雨':['雨水','下雨','雨衣','大雨'],
+  '风':['风雨','风筝','大风','风云'],'雪':['雪花','下雪','雪山','白雪'],'田':['田地','田野','种田','田园'],
+  '土':['土地','泥土','土豆','国土'],'石':['石头','石子','宝石','玉石'],'贝':['贝壳','宝贝','分贝'],
+  '虫':['虫子','昆虫','害虫','虫草'],'鱼':['小鱼','金鱼','鱼苗','钓鱼'],'鸟':['小鸟','飞鸟','鸟窝','鸵鸟'],
+  '马':['马车','木马','马路','马匹'],'牛':['牛奶','黄牛','水牛','牛皮'],'羊':['山羊','绵羊','羊毛','羊群'],
+  '猪':['小猪','猪圈','猪肉'],'狗':['小狗','狗熊','热狗'],'猫':['小猫','花猫','猫眼'],
+  '大':['大家','大人','大象','大小'],'中':['中国','中间','中心','中午'],'上':['上学','上班','上面','早上'],
+  '下':['下雨','下面','下课','下午'],'左':['左右','左边','左手'],'右':['右边','右手','右耳'],
+  '前':['前后','前面','从前','前进'],'后':['后面','以后','后来','后门'],'东':['东西','东方','东风','东边'],
+  '西':['东西','西方','西瓜','西边'],'南':['南方','南边','南瓜'],'北':['北方','北边','北京','北极'],
+  '一':['一个','一天','第一','一样'],'二':['二手','二月','第二'],'三':['三个','三月','第三','三角'],
+  '四':['四个','四月','第四','四周'],'五':['五个','五月','第五'],'六':['六个','六月','第六'],
+  '七':['七个','七月','第七'],'八':['八个','八月','第八'],'九':['九个','九月','第九'],'十':['十个','十月','十年','十字'],
+  '百':['一百','百分','百姓'],'千':['一千','千万','千古'],'万':['一万','千万','万事'],
+  '年':['年岁','年级','今年','少年'],'岁':['岁数','几岁','年岁'],'时':['时间','时候','小时','时光'],
+  '分':['分钟','分开','分别','分数'],'秒':['秒针','一秒','秒表'],
+  '父':['父亲','父母','父子'],'母':['母亲','父母','母子'],'儿':['儿子','儿童','儿女'],'女':['女儿','女孩','女人','女王'],
+  '兄':['兄弟','兄长'],'弟':['弟弟','兄弟','弟妹'],'姐':['姐姐','姐妹'],'妹':['妹妹','姐妹','表妹'],
+  '生':['生日','生活','学生','花生'],'学':['学生','学习','学校','同学'],'校':['学校','校园','校长'],
+  '书':['书本','书包','读书','书法'],'字':['字数','文字','生字','字典'],'笔':['毛笔','铅笔','笔画','笔顺'],
+  '画':['画画','画家','图画','笔画'],'红':['红色','红花','红领巾'],'绿':['绿色','绿叶','绿草'],
+  '蓝':['蓝色','蓝天','蓝鲸'],'白':['白色','白云','白天'],'黑':['黑色','黑夜','黑板'],
+  '心':['心情','心里','开心','小心'],'思':['思想','思念','思考'],'想':['想法','想念','理想','想象'],
+  '知':['知道','知识','知心'],'识':['认识','知识','识字'],'读':['读书','朗读','阅读','读音'],
+  '写':['写字','写作','书写','写话'],'说':['说话','小说','说明','说书'],'听':['听见','听话','听讲','听力'],
+  '看':['看见','看书','看病','好看'],'见':['见面','看见','听见','意见'],
+  '明':['明天','明白','明亮','明月'],'亮':['亮光','明亮','漂亮'],'光':['光明','阳光','月光','灯光'],
+  '好':['好人','好事','好心','好朋友'],'友':['朋友','友好','友谊'],'爱':['爱心','爱好','可爱','热爱'],
+  '和':['和平','和好','暖和','和气'],'平':['平安','平地','平时','水平'],'安':['安全','安静','平安','安心'],
+  '快':['快乐','飞快','快车','快点'],'乐':['快乐','音乐','乐园'],'笑':['笑声','欢笑','笑话','微笑'],
+  '哭':['哭泣','哭声'],'跑':['跑步','奔跑','跑道'],'跳':['跳舞','跳高','跳绳','心跳'],
+  '走':['走路','行走','走开','出走'],'飞':['飞机','飞翔','飞鸟','飞天'],'坐':['坐下','坐车','坐船'],
+  '站':['站立','站住','车站'],'立':['立正','立刻','成立','站立'],
+  '吃':['吃饭','吃苦','口吃'],'喝':['喝水','喝茶','喝酒'],'穿':['穿衣','穿着','穿过'],
+  '衣':['衣服','毛衣','雨衣','大衣'],'帽':['帽子','草帽'],'鞋':['鞋子','皮鞋','凉鞋'],
+  '门':['门口','大门','开门','门牙'],'窗':['窗户','窗口','窗花'],'桌':['桌子','书桌','课桌'],
+  '椅':['椅子','座椅'],'床':['床铺','木床','床上'],'灯':['灯光','电灯','台灯','灯笼'],
+  '车':['火车','汽车','车站','马车'],'船':['小船','轮船','飞船','船夫'],'机':['飞机','手机','机器','机会'],
+  '公':['公园','公共','公司','公里'],'园':['公园','花园','果园','校园'],'路':['马路','路口','小路','路上'],
+  '桥':['小桥','石桥','桥洞'],'城':['城市','城门','长城'],'市':['城市','市场','市民'],
+  '国':['国家','中国','国旗','国王'],'家':['家门','家人','回家','国家'],'乡':['乡村','家乡','乡土','乡下'],
+  '工':['工人','工厂','工作','手工'],'农':['农民','农业','农村','农田'],'兵':['士兵','当兵','兵法'],
+  '医':['医生','医院','中医','医疗'],'师':['老师','师傅','医师','师长'],'生':['学生','医生','生活','花生']
+};
+/* 长词优先匹配（2字及以上） */
+const WORDS_LIST = (function(){
+  const s=new Set();
+  Object.values(ZUOCI).forEach(arr=>arr.forEach(w=>{ if(w.length>=2) s.add(w); }));
+  return [...s];
+})();
+
+/* ===================== 拼音 + 中文朗读 ===================== */
+function getPinyin(s){
+  try{
+    const mod = window.pinyinPro || window.pinyin;
+    if(!mod) return '';
+    return mod.pinyin(s, {toneType:'symbol', type:'string'});
+  }catch(e){ return ''; }
+}
+function speakZh(text){
+  if(!text) return;
+  if(!('speechSynthesis' in window)){ speakBaiduZh(text); return; }
+  const tryWeb=(voices)=>{
+    const zh=voices.find(v=>/zh|cmn/i.test(v.lang));
+    if(zh){ const u=new SpeechSynthesisUtterance(text); u.lang='zh-CN'; u.rate=0.8; try{window.speechSynthesis.cancel();window.speechSynthesis.speak(u);return true;}catch(e){return false;} }
+    return false;
+  };
+  if(tryWeb(window.speechSynthesis.getVoices())) return;
+  let done=false; const finish=()=>{ if(done)return; done=true; if(!tryWeb(window.speechSynthesis.getVoices())) speakBaiduZh(text); };
+  window.speechSynthesis.addEventListener('voiceschanged', finish, {once:true});
+  setTimeout(finish, 1200);
+}
+function speakBaiduZh(text){
+  const url='https://fanyi.baidu.com/gettts?lan=zh&text='+encodeURIComponent(text)+'&spd=3&source=web';
+  const a=new Audio(url);
+  a.onerror=()=>{ const u2='https://dict.youdao.com/dictvoice?type=1&audio='+encodeURIComponent(text); const a2=new Audio(u2); a2.onerror=()=>alert('朗读不可用，请检查网络'); a2.play().catch(()=>{}); };
+  a.play().catch(()=>{});
+}
+
+/* ===================== 提取汉字 ===================== */
+function extractHanzi(text){
+  const seen=new Set(), out=[];
+  const sorted=[...new Set(WORDS_LIST)].sort((a,b)=>b.length-a.length);
+  for(const w of sorted){ if(w.length>=2 && text.includes(w) && !seen.has(w)){ seen.add(w); out.push({w, multi:true}); } }
+  const chars=[...text].filter(c=>/[\u4e00-\u9fa5]/.test(c));
+  chars.forEach(c=>{ if(!seen.has(c)){ seen.add(c); out.push({w:c, multi:false}); } });
+  return out;
+}
+
+/* ===================== 字卡渲染 ===================== */
+const wordGrid=document.getElementById('wordGrid');
+const resultTitle=document.getElementById('resultTitle');
+function renderCards(list){
+  wordGrid.innerHTML='';
+  resultTitle.style.display='block';
+  resultTitle.textContent='提取到 '+list.length+' 个汉字/词语（点击卡片看笔顺动画，点 🔊 朗读，点 🎤 跟读）';
+  list.forEach((it, idx)=>{
+    const w=it.w;
+    const py=getPinyin(w);
+    const zc=it.multi ? [w] : (ZUOCI[w]||[]);
+    const div=document.createElement('div');
+    div.className='wcard';
+    div.innerHTML='<div class="w">'+w+'</div>'
+      +'<div class="py">'+py+'</div>'
+      +'<div class="gridbox" id="gw_'+idx+'"></div>'
+      +'<div class="zc">'+(zc.length? zc.map(z=>'<span>'+z+'</span>').join('') : '—')+'</div>'
+      +'<div class="ipa-row">'
+        +'<button class="ipa-play" onclick="event.stopPropagation();speakZh(\''+w.replace(/'/g,"\\'")+'\');">🔊 朗读</button>'
+        +'<button class="ipa-fb" onclick="event.stopPropagation();startFollowRead(this, \''+w.replace(/'/g,"\\'")+'\');">🎤 跟读</button>'
+      +'</div>';
+    div.onclick=()=>openDetail(w);
+    wordGrid.appendChild(div);
+    renderGrid(document.getElementById('gw_'+idx), w[0]);
+  });
+}
+function renderGrid(el, han){
+  if(!el) return;
+  el.innerHTML='';
+  try{
+    if(typeof HanziWriter==='undefined'){ el.textContent=han; el.style.fontSize='48px'; el.style.color='#333'; el.style.display='flex'; el.style.alignItems='center'; el.style.justifyContent='center'; return; }
+    const w=el.clientWidth||104;
+    const writer=HanziWriter.create(el, han, {
+      width:w, height:w, padding:6,
+      showOutline:true, strokeColor:'#1d4ed8', radicalColor:'#16a34a', showCharacter:true
+    });
+    el.onclick=()=>{ try{ writer.animateCharacter(); }catch(e){} };
+  }catch(e){ el.textContent=han; }
+}
+
+/* ===================== 详情弹窗 ===================== */
+const sheet=document.getElementById('sheet');
+let currentWord='';
+function openDetail(w){
+  currentWord=w;
+  const py=getPinyin(w);
+  const zc=(w.length>1)?[w]:(ZUOCI[w]||[]);
+  document.getElementById('dLtr').textContent=w[0];
+  document.getElementById('dEm').textContent='📖';
+  document.getElementById('dPy').textContent='拼音：'+(py||'—');
+  document.getElementById('dDesc').textContent='';
+  document.getElementById('dZc').innerHTML='<div class="t">组词</div><div class="items">'+(zc.length? zc.map(z=>'<span>'+z+'</span>').join('') : '<span>—</span>')+'</div>';
+  renderGrid(document.getElementById('dGrid'), w[0]);
+  document.getElementById('dGrid').onclick=()=>{ const w0=document.getElementById('dGrid'); };
+  sheet.classList.add('show');
+}
+document.getElementById('dClose').onclick=()=>sheet.classList.remove('show');
+document.getElementById('dPlay').onclick=()=>{ if(currentWord) speakZh(currentWord); };
+document.getElementById('dRec').onclick=function(){ const w=currentWord||''; if(w) startFollowRead(this, w); };
+document.getElementById('dAsk').onclick=()=>{ openChat(); chatInput.value='请讲讲汉字「'+currentWord+'」的读音、笔顺、组词和意思'; };
+
+/* ===================== 句子成分（豆包式树，需 Key） ===================== */
+const treeBox=document.getElementById('treeBox');
+function renderMd(t){
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const bold=s=>s.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+  const lines=t.split('\n'); const out=[]; const stack=[];
+  const closeDeep=ind=>{ while(stack.length && stack[stack.length-1]>ind){ out.push('</ul>'); stack.pop(); } };
+  for(const raw of lines){
+    if(!raw.trim()) continue;
+    const hm=raw.match(/^(#{1,3})\s+(.*)$/);
+    if(hm){ closeDeep(-1); out.push('<div class="hd h'+hm[1].length+'">'+esc(hm[2])+'</div>'); continue; }
+    const bm=raw.match(/^(\s*)[*\-]\s+(.*)$/);
+    if(bm){ const ind=bm[1].length; closeDeep(ind); if(!stack.length||stack[stack.length-1]<ind){out.push('<ul>');stack.push(ind);} out.push('<li>'+bold(esc(bm[2]))+'</li>'); continue; }
+    closeDeep(-1); out.push(bold(esc(raw)));
+  }
+  closeDeep(-1); return out.join('');
+}
+async function fetchTree(sent, key, ep, model){
+  const sys='你是小学语文老师。请像"思维导图"一样把句子逐层拆解成成分树，严格用 Markdown 输出：## 整句：<原句> 下分 主句/从句，再分 主语/谓语/宾语，修饰语按缩进挂中心词。只输出这种 Markdown 树，不要多余解释。';
+  const r=await fetch(ep,{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model, messages:[{role:'system',content:sys},{role:'user',content:sent}]})});
+  if(!r.ok) throw new Error('API '+r.status);
+  const j=await r.json(); let txt=j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content||'';
+  return txt.replace(/```[a-z]*\n?/gi,'').replace(/```/g,'').trim();
+}
+document.getElementById('btnSent').onclick=async ()=>{
+  const sent=document.getElementById('input').value.trim();
+  if(!sent){ treeBox.innerHTML='<div class="sysmsg">请先在上方输入课文/句子</div>'; return; }
+  const key=localStorage.getItem('xf_phx_key')||localStorage.getItem('phx_key');
+  const ep=localStorage.getItem('phx_endpoint')||'https://apihub.agnes-ai.com/v1/chat/completions';
+  const model=localStorage.getItem('phx_model')||'agnes-2.0-flash';
+  if(!key){ treeBox.innerHTML='<div class="sysmsg">未填 API Key。点 💬 → ⚙ 填入 Agnes Key 后即可分析。</div>'; return; }
+  treeBox.innerHTML='<div class="sysmsg">分析中…</div>';
+  try{ const md=await fetchTree(sent, key, ep, model); treeBox.innerHTML=renderMd(md); }
+  catch(e){ treeBox.innerHTML='<div class="sysmsg">分析失败：'+(e.message||e)+'（检查 Key 或网络）</div>'; }
+};
+
+/* ===================== 分析按钮 ===================== */
+document.getElementById('btnAnalyze').onclick=()=>{
+  const t=document.getElementById('input').value.trim();
+  if(!t){ resultTitle.style.display='none'; wordGrid.innerHTML=''; return; }
+  renderCards(extractHanzi(t));
+};
+document.getElementById('btnClear').onclick=()=>{ document.getElementById('input').value=''; wordGrid.innerHTML=''; resultTitle.style.display='none'; treeBox.innerHTML='<div class="sysmsg">先点「分析」生成短文，再点下方「分析句子」即可。</div>'; };
+
+/* ===================== 跟读识别：讯飞（中文） ===================== */
+let _reco=null;
+function getReco(){
+  if(_reco!==null) return _reco;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ _reco=false; return false; }
+  const r=new SR(); r.lang='zh-CN'; r.interimResults=false; r.maxAlternatives=3; r.continuous=false; _reco=r; return r;
+}
+function normStr(s){ return (s||'').toLowerCase().replace(/[^a-z\u4e00-\u9fa5]/g,''); }
+function showRecToast(msg, kind){
+  const t=document.createElement('div'); t.className='rec-toast '+(kind||'');
+  if(kind==='rec') t.innerHTML='<span class="dot"></span>'+msg; else t.textContent=msg;
+  document.body.appendChild(t);
+  if(kind==='rec') return t;
+  const dur=kind==='ok'?1600:(kind==='no'?4000:2200);
+  setTimeout(()=>{ t.style.transition='opacity .3s'; t.style.opacity='0'; setTimeout(()=>t.remove(),320); }, dur);
+}
+const fireConfetti=(function(){
+  let canvas=null,ctx=null,raf=null,parts=[];
+  function ensure(){
+    if(canvas) return; canvas=document.createElement('canvas'); canvas.className='confetti-canvas';
+    canvas.width=window.innerWidth*(window.devicePixelRatio||1); canvas.height=window.innerHeight*(window.devicePixelRatio||1);
+    canvas.style.width='100vw'; canvas.style.height='100vh'; document.body.appendChild(canvas);
+    ctx=canvas.getContext('2d'); ctx.scale(window.devicePixelRatio||1, window.devicePixelRatio||1);
+    window.addEventListener('resize',()=>{ canvas.width=window.innerWidth*(window.devicePixelRatio||1); canvas.height=window.innerHeight*(window.devicePixelRatio||1); ctx.scale(window.devicePixelRatio||1, window.devicePixelRatio||1); });
+  }
+  function spawn(count,big){
+    ensure(); const colors=['#fbbf24','#f87171','#60a5fa','#34d399','#a78bfa','#fb923c','#f472b6','#22d3ee','#facc15'];
+    const cx=window.innerWidth/2, cy=window.innerHeight*0.35, n=count||90;
+    for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, sp=(big?5:3)+Math.random()*7;
+      parts.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-(big?5:3),g:0.18,life:70+Math.random()*50,c:colors[(Math.random()*colors.length)|0],r:3+Math.random()*5,rot:Math.random()*Math.PI,vr:(Math.random()-.5)*0.3,sh:Math.random()<0.3}); }
+    if(!raf) loop();
+  }
+  function loop(){ ctx.clearRect(0,0,canvas.width,canvas.height); parts=parts.filter(p=>p.life>0);
+    for(const p of parts){ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.life--; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.c;
+      if(p.sh){ ctx.fillRect(-p.r,-p.r*.4,p.r*2,p.r*.8); } else { ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fill(); } ctx.restore(); }
+    if(parts.length){ raf=requestAnimationFrame(loop); } else { raf=null; ctx.clearRect(0,0,canvas.width,canvas.height); } }
+  return { big:()=>spawn(120,true), small:()=>spawn(50,false) };
+})();
+function editDist(a,b){ const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+  const dp=Array.from({length:m+1},(_,i)=>[i].concat(Array(n).fill(0))); for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){ dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1])+1; } return dp[m][n]; }
+function xfCreds(){ return {appid:localStorage.getItem('xf_appid')||'', apiKey:localStorage.getItem('xf_apikey')||'', apiSecret:localStorage.getItem('xf_apisecret')||''}; }
+function xfReady(){ const c=xfCreds(); return !!(c.appid&&c.apiKey&&c.apiSecret); }
+function xfB64Bytes(bytes){ return btoa(String.fromCharCode.apply(null, bytes)); }
+async function xfSign(text, secret){
+  const enc=new TextEncoder().encode(text);
+  const key=await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), {name:'HMAC', hash:'SHA-256'}, false, ['sign']);
+  const sig=await crypto.subtle.sign('HMAC', key, enc);
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(sig)));
+}
+async function xfAuthUrl(){
+  const c=xfCreds(); const host='iat-api.xfyun.cn'; const date=new Date().toUTCString();
+  const signStr=await xfSign('host: '+host+'\ndate: '+date+'\nGET /v2/iat HTTP/1.1', c.apiSecret);
+  const authOrigin='api_key="'+c.apiKey+'", algorithm="hmac-sha256", headers="host date request-line", signature="'+signStr+'"';
+  const authorization=xfB64Bytes(new TextEncoder().encode(authOrigin));
+  return 'wss://'+host+'/v2/iat?authorization='+encodeURIComponent(authorization)+'&date='+encodeURIComponent(date)+'&host='+encodeURIComponent(host);
+}
+function startXfFollow(btn, targetWord){
+  btn.classList.add('rec');
+  const tip=showRecToast('请大声读：'+targetWord, 'rec');
+  let heard='', stopped=false;
+  const finish=(showMsg)=>{ if(stopped) return; stopped=true; btn.classList.remove('rec'); if(tip) tip.remove(); if(showMsg){ showRecToast(showMsg,'no'); return; } judgeFollow(btn, heard, targetWord); };
+  xfAuthUrl().then(url=>{
+    const ws=new WebSocket(url);
+    ws.onopen=()=>{
+      navigator.mediaDevices.getUserMedia({audio:{sampleRate:16000, channelCount:1, echoCancellation:true, noiseSuppression:true}})
+      .then(stream=>{
+        const AudioCtx=window.AudioContext||window.webkitAudioContext;
+        const ctx=new AudioCtx({sampleRate:16000});
+        const source=ctx.createMediaStreamSource(stream);
+        const processor=ctx.createScriptProcessor(4096,1,1);
+        const frameSize=1280; let partial=new Uint8Array(0), frameIdx=0;
+        processor.onaudioprocess=(e)=>{
+          if(ws.readyState!==WebSocket.OPEN) return;
+          const input=e.inputBuffer.getChannelData(0);
+          const pcm=new Int16Array(input.length);
+          for(let i=0;i<input.length;i++){ const s=Math.max(-1,Math.min(1,input[i])); pcm[i]= s<0? s*0x8000 : s*0x7FFF; }
+          const buf=new Uint8Array(pcm.buffer);
+          const all=new Uint8Array(partial.length+buf.length); all.set(partial,0); all.set(buf,partial.length);
+          const full=Math.floor(all.length/frameSize)*frameSize;
+          for(let off=0; off<full; off+=frameSize){
+            const slice=all.subarray(off, off+frameSize); const b64=xfB64Bytes(slice);
+            let msg;
+            if(frameIdx===0){ msg={common:{app_id:xfCreds().appid}, business:{language:'zh_cn', domain:'iat'}, data:{status:0, format:'audio/L16;rate=16000', encoding:'raw', audio:b64}}; }
+            else { msg={data:{status:1, format:'audio/L16;rate=16000', encoding:'raw', audio:b64}}; }
+            ws.send(JSON.stringify(msg)); frameIdx++;
+          }
+          partial=all.subarray(full);
+        };
+        source.connect(processor); processor.connect(ctx.destination);
+        stopRec=()=>{ try{ processor.disconnect(); source.disconnect(); stream.getTracks().forEach(t=>t.stop()); ctx.close(); }catch(e){}
+          if(ws.readyState===WebSocket.OPEN){ try{ ws.send(JSON.stringify({data:{status:2}})); }catch(e){} } setTimeout(()=>{ try{ ws.close(); }catch(e){} }, 400); };
+        setTimeout(()=>{ if(!stopped) stopRec(); }, 6000);
+      })
+      .catch(err=>{ finish('无法访问麦克风：'+(err.message||err.name)); try{ ws.close(); }catch(e){} });
+    };
+    ws.onmessage=(ev)=>{ let data; try{ data=JSON.parse(ev.data); }catch(e){ return; }
+      if(data.code!==0){ finish('讯飞识别错误 '+data.code+'：'+(data.message||'')); return; }
+      if(data.data&&data.data.result){ const wsArr=data.data.result.ws; let text=''; for(const w of wsArr) for(const c of w.cw) text+=c.w; heard+=text; }
+      if(data.data&&data.data.status===2){ if(stopRec) stopRec(); else try{ ws.close(); }catch(e){} finish(); }
+    };
+    ws.onerror=()=>finish('讯飞连接失败（检查网络或密钥）');
+    ws.onclose=()=>{ if(!stopped) finish(); };
+  }).catch(err=>{ btn.classList.remove('rec'); if(tip) tip.remove(); showRecToast('讯飞鉴权失败：'+(err.message||err), 'no'); });
+}
+function startWebFollow(btn, targetWord){
+  const reco=getReco(); if(!reco){ showRecToast('当前浏览器不支持 Web 语音识别，请在 ⚙ 设置里填「讯飞语音识别」三件套（国产安卓必需）', 'no'); return; }
+  try{ reco.abort(); }catch(e){}
+  let heard='', done=false; const end=(h)=>{ if(done) return; done=true; judgeFollow(btn, h, targetWord); };
+  reco.onresult=(ev)=>{ let best=''; for(let i=ev.results.length-1;i>=0;i--){ const r=ev.results[i]; for(let j=0;j<r.length;j++){ const alt=(r[j].transcript||'').trim(); if(normStr(alt)===normStr(targetWord)){ best=alt; break; } } if(best) break; } if(!best) best=(ev.results[ev.results.length-1][0].transcript||'').trim(); heard=best; };
+  reco.onerror=(ev)=>{ if(done) return; done=true; btn.classList.remove('rec'); const msg=ev.error==='not-allowed'?'请允许麦克风权限（地址栏左侧小锁）':ev.error==='no-speech'?'没听到声音，再试一次':ev.error==='audio-capture'?'没有可用麦克风':ev.error==='network'?'需要联网才能识别，请检查网络':'识别失败：'+(ev.error||'未知错误'); showRecToast(msg,'no'); };
+  reco.onend=()=>end(heard);
+  try{ reco.start(); }catch(e){ done=true; btn.classList.remove('rec'); showRecToast('启动失败，请再点一次','no'); }
+  setTimeout(()=>{ if(!done){ done=true; btn.classList.remove('rec'); showRecToast('识别无响应，请确认已填「讯飞语音识别」密钥（国产安卓必需）','no'); } }, 8000);
+}
+function judgeFollow(btn, heard, targetWord){
+  btn.classList.remove('rec','busy');
+  const h=normStr(heard), t=normStr(targetWord);
+  if(!t){ showRecToast('单词为空','no'); return; }
+  if(!h){ showRecToast('没听到声音，点 🎤 后立刻大声读出（不要等）','no'); return; }
+  if(h===t || h.indexOf(t)>=0 || t.indexOf(h)>=0){ btn.classList.add('busy'); showRecToast('🎉 读对啦！','ok'); fireConfetti.big(); setTimeout(()=>btn.classList.remove('busy'),700); return; }
+  const d=editDist(h,t); const tol=Math.max(1, Math.floor(t.length*0.25));
+  if(d<=tol || (d===1 && Math.abs(h.length-t.length)<=1)){ btn.classList.add('busy'); showRecToast('很接近！小礼花送上 🎊','ok'); fireConfetti.small(); setTimeout(()=>btn.classList.remove('busy'),700); }
+  else { showRecToast('听到「'+heard+'」，再试一次 💪','no'); }
+}
+function startFollowRead(btn, targetWord){
+  document.querySelectorAll('.ipa-fb.rec, #dRec.rec').forEach(b=>b.classList.remove('rec'));
+  document.querySelectorAll('.rec-toast.rec').forEach(t=>t.remove());
+  if(xfReady()){ startXfFollow(btn, targetWord); }
+  else if(getReco()){ btn.classList.add('rec'); startWebFollow(btn, targetWord); }
+  else { showRecToast('请先在 ⚙ 设置里填「讯飞语音识别」的 APPID / APIKey / APISecret（国产安卓必备）','no'); }
+}
+
+/* ===================== 测试讯飞 ===================== */
+async function testXfConnection(){
+  const c=xfCreds(); if(!c.appid||!c.apiKey||!c.apiSecret){ alert('请先填写讯飞三件套，再点测试'); return; }
+  let url; try{ url=await xfAuthUrl(); }catch(e){ alert('鉴权 URL 构造失败：'+(e.message||e)); return; }
+  let ws, logs=[], done=false, timer; try{ ws=new WebSocket(url); }catch(e){ alert('WebSocket 创建失败：'+e); return; }
+  const finish=(prefix)=>{ if(done) return; done=true; clearTimeout(timer); try{ ws.close(); }catch(e){}
+    const tail=logs.length? logs.slice(-4).map(x=>JSON.stringify(x)).join('\n'):'(无响应)';
+    alert((prefix||'测试结束')+'\n\n讯飞响应（最近 4 条）：\n'+tail+'\n\n提示：\n• code 10005/10006=鉴权失败（APIKey/Secret 错）\n• code 10004=appid 错\n• code 10010/10012/10013=服务未开通或额度用完\n• 收到 result.ws=[] 但无错=音频采集/格式问题\n• 完全无响应=网络不通'); };
+  ws.onopen=()=>{ const silence=new Uint8Array(1280); const b64=xfB64Bytes(silence);
+    ws.send(JSON.stringify({common:{app_id:c.appid}, business:{language:'zh_cn', domain:'iat'}, data:{status:0, format:'audio/L16;rate=16000', encoding:'raw', audio:b64}}));
+    ws.send(JSON.stringify({data:{status:1, format:'audio/L16;rate=16000', encoding:'raw', audio:b64}}));
+    ws.send(JSON.stringify({data:{status:2}})); };
+  ws.onmessage=(ev)=>{ try{ logs.push(JSON.parse(ev.data)); }catch(e){ logs.push(ev.data); } };
+  ws.onerror=()=>finish('连接出错'); ws.onclose=()=>finish();
+  timer=setTimeout(()=>finish('5 秒内无响应（可能鉴权失败或网络问题）'), 5000);
+}
+document.getElementById('setTestXf').onclick=testXfConnection;
+
+/* ===================== 设置面板 ===================== */
+document.getElementById('setSave').onclick=()=>{
+  localStorage.setItem('phx_endpoint',document.getElementById('setEndpoint').value);
+  localStorage.setItem('phx_model',document.getElementById('setModel').value);
+  localStorage.setItem('phx_key',document.getElementById('setKey').value);
+  localStorage.setItem('xf_appid',document.getElementById('setXfAppid').value.trim());
+  localStorage.setItem('xf_apikey',document.getElementById('setXfApikey').value.trim());
+  localStorage.setItem('xf_apisecret',document.getElementById('setXfSecret').value.trim());
+  alert('已保存（仅本机）');
+};
+(function(){ document.getElementById('setEndpoint').value=localStorage.getItem('phx_endpoint')||'https://apihub.agnes-ai.com/v1/chat/completions'; document.getElementById('setModel').value=localStorage.getItem('phx_model')||'agnes-2.0-flash'; document.getElementById('setKey').value=localStorage.getItem('phx_key')||''; document.getElementById('setXfAppid').value=localStorage.getItem('xf_appid')||''; document.getElementById('setXfApikey').value=localStorage.getItem('xf_apikey')||''; document.getElementById('setXfSecret').value=localStorage.getItem('xf_apisecret')||''; })();
+document.getElementById('openSet').onclick=()=>{ document.getElementById('chatSet').classList.toggle('show'); };
+document.getElementById('chatGear').onclick=()=>{ document.getElementById('chatSet').classList.toggle('show'); };
+
+/* ===================== AI 聊天 ===================== */
+const chat=document.getElementById('chat'); const chatMsgs=document.getElementById('chatMsgs'); const chatInput=document.getElementById('chatInput');
+let curContext='';
+function openChat(){ chat.classList.add('show'); }
+function systemPrompt(){ return '你是小学语文辅导老师，讲解通俗易懂、多用例子，照顾小学生。'+(curContext?('当前上下文：'+curContext+'。'):''); }
+document.getElementById('chatFab').onclick=()=>chat.classList.add('show');
+document.getElementById('chatClose').onclick=()=>chat.classList.remove('show');
+function addMsg(role, text){
+  const d=document.createElement('div'); d.className='msg '+(role==='user'?'u':'a');
+  d.textContent=text; chatMsgs.appendChild(d); chatMsgs.scrollTop=chatMsgs.scrollHeight; return d;
+}
+async function sendChat(){
+  const text=chatInput.value.trim(); if(!text) return;
+  const key=localStorage.getItem('phx_key'); const ep=localStorage.getItem('phx_endpoint')||'https://apihub.agnes-ai.com/v1/chat/completions'; const model=localStorage.getItem('phx_model')||'agnes-2.0-flash';
+  addMsg('user', text); chatInput.value='';
+  if(!key){ addMsg('sys','未填 Key：点 ⚙ 填入 Agnes Key，或复制问题去 WorkBuddy 问。'); return; }
+  const d=addMsg('a','老师思考中…');
+  try{
+    const r=await fetch(ep,{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model, messages:[{role:'system',content:systemPrompt()},{role:'user',content:text}]})});
+    if(!r.ok) throw new Error('API '+r.status);
+    const j=await r.json(); const ans=(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||'（无返回）';
+    d.innerHTML=ans.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')+'<span class="speak" onclick="speakZh(\''+text.replace(/'/g,"\\'")+'\')">🔊 朗读</span>';
+  }catch(e){ d.textContent='讲解失败：'+(e.message||e)+'（检查 Key/网络）'; }
+}
+document.getElementById('chatSend').onclick=sendChat;
+chatInput.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); } });
+
+/* ===================== 启动 ===================== */
+console.log('语文图谱就绪；pinyin:', !!(window.pinyinPro||window.pinyin), 'hanzi:', typeof HanziWriter);
+</script>
+</body>
+</html>
