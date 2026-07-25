@@ -361,139 +361,143 @@ document.getElementById('dAsk').onclick=()=>{ openChat(); chatInput.value='请�
 
 /* ===================== 句子成分（豆包式树，需 Key） ===================== */
 const treeBox=document.getElementById('treeBox');
-function renderMd(t){
-  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const bold=s=>s.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
-  const lines=t.split('\n'); const out=[]; const stack=[];
-  const closeDeep=ind=>{ while(stack.length && stack[stack.length-1]>ind){ out.push('</ul>'); stack.pop(); } };
-  for(const raw of lines){
-    if(!raw.trim()) continue;
-    const hm=raw.match(/^(#{1,3})\s+(.*)$/);
-    if(hm){ closeDeep(-1); out.push('<div class="hd h'+hm[1].length+'">'+esc(hm[2])+'</div>'); continue; }
-    const bm=raw.match(/^(\s*)[*\-]\s+(.*)$/);
-    if(bm){ const ind=bm[1].length; closeDeep(ind); if(!stack.length||stack[stack.length-1]<ind){out.push('<ul>');stack.push(ind);} out.push('<li>'+bold(esc(bm[2]))+'</li>'); continue; }
-    closeDeep(-1); out.push(bold(esc(raw)));
-  }
-  closeDeep(-1); return out.join('');
+
+/* —— 自动分句：按 。！？；\n 切分，保留短句不切 —— */
+function splitSentences(text){
+  const parts=text.split(/([。！？；\n]+)/).reduce((acc,p,i)=>{
+    if(i%2===0){ acc[acc.length]=p; } else { if(acc.length) acc[acc.length-1]+=p; else acc.push(p); }
+    return acc;
+  },[]);
+  return parts.map(s=>s.trim()).filter(s=>s);
 }
-async function fetchTree(sent, key, ep, model){
-  const sys=`你是小学语文老师，擅长按中国大陆小学语文教材的语法知识拆解句子成分。
-请把句子逐层拆成 Markdown 成分树，遵循以下规则：
-1. 第一层：## 整句：<原句>
-2. 先分出主语、谓语、宾语、定语、状语、补语六大基本成分；主谓宾必须列出。
-3. 宾语如果是并列短语（如"读书和写字"），要把整个并列短语作为宾语，再往下分并列项；不能把一个动宾短语（如"读书""写字"）错误拆成"中心语+定语"。
-4. 动宾短语内部：动词是中心，后面的名词是宾语；例如"读书"→中心词：读，宾语：书。
-5. 连词（如"和""与""或"）要单独标为"连词"。
-6. 不要过度拆分；小学常见句以主谓宾/主谓宾宾/主谓宾补为主，复杂从句才细分从句。
-7. 只输出 Markdown 树，不要额外解释，不要用代码块包裹。`;
+
+/* —— JSON 树渲染器：把结构化成分树渲染成 HTML —— */
+function renderJsonTree(node, isRoot){
+  if(!node) return '';
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const role=node.role||'';
+  const text=node.text||'';
+  const pt=node.phrase_type||'';
+  const label=pt ? (role+'（'+pt+'）') : role;
+  const childHtml=(node.children&&node.children.length)
+    ? '<ul>'+node.children.map(c=>'<li>'+renderJsonTree(c,false)+'</li>').join('')+'</ul>' : '';
+  if(isRoot){
+    return '<div class="hd h1">整句：'+esc(text)+'</div>'+childHtml;
+  }
+  return '<b>'+esc(label)+'：</b>'+esc(text)+childHtml;
+}
+
+/* —— JSON schema 版 prompt —— */
+function buildJsonPrompt(sent){
+  return `你是小学语文老师，擅长按中国大陆小学语文教材的语法知识拆解句子成分。
+请把下面句子拆成 JSON 成分树，严格遵循 schema：
+
+{
+  "sentence": "原句",
+  "root": {
+    "role": "主句",
+    "text": "整句",
+    "children": [
+      {"role":"主语","text":"...","children":[]},
+      {"role":"谓语","text":"...","children":[]},
+      {"role":"宾语","text":"...","phrase_type":"...","children":[...]}
+    ]
+  }
+}
+
+字段说明：
+- role：成分名称，取值 主语/谓语/宾语/定语/状语/补语/连词/并列项/动词(中心)/宾语/主句/从句
+- text：该成分对应的原文文字
+- phrase_type：短语类型（可选），取值 动宾短语/并列短语/偏正短语/介宾短语
+- children：子成分数组，没有则空数组
+
+硬性规则：
+1. 动宾短语必须标 phrase_type:"动宾短语"，且 children 只能是 {"role":"动词(中心)"} + {"role":"宾语"}，绝不能拆成"中心语+定语/修饰语"。
+2. 并列短语（如"读书和写字"）必须标 phrase_type:"并列短语"，整体作为一个宾语；连词"和/与/或"单独成 {"role":"连词"} 节点。
+3. 主谓宾必须列出（简单句）。定语/状语/补语按需。
+4. 不要过度拆分，小学常见句以主谓宾/主谓宾宾/主谓宾补为主。
+5. 只输出 JSON，不要任何解释，不要用代码块包裹。
+
+句子：${sent}`;
+}
+
+/* —— 调用 AI 获取 JSON —— */
+async function fetchTreeJson(sent, key, ep, model){
+  const sys=buildJsonPrompt(sent);
   const r=await fetch(ep,{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model, messages:[{role:'system',content:sys},{role:'user',content:sent}]})});
   if(!r.ok) throw new Error('API '+r.status);
-  const j=await r.json(); let txt=j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content||'';
-  return txt.replace(/```[a-z]*\n?/gi,'').replace(/```/g,'').trim();
+  const j=await r.json();
+  let txt=j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content||'';
+  txt=txt.replace(/```[a-z]*\n?/gi,'').replace(/```/g,'').trim();
+  // 提取第一个 JSON 对象
+  const m=txt.match(/\{[\s\S]*\}/);
+  if(!m) throw new Error('AI 未返回有效 JSON');
+  return JSON.parse(m[0]);
 }
-document.getElementById('btnSent').onclick=async ()=>{
-  const sent=document.getElementById('input').value.trim();
-  if(!sent){ treeBox.innerHTML='<div class="sysmsg">请先在上方输入课文/句子</div>'; return; }
-  const key=localStorage.getItem('xf_phx_key')||localStorage.getItem('phx_key');
-  const ep=localStorage.getItem('phx_endpoint')||'https://apihub.agnes-ai.com/v1/chat/completions';
-  const model=localStorage.getItem('phx_model')||'agnes-2.0-flash';
-  if(!key){ treeBox.innerHTML='<div class="sysmsg">未填 API Key。点 💬 → ⚙ 填入 Agnes Key 后即可分析。</div>'; return; }
-  treeBox.innerHTML='<div class="sysmsg">分析中…</div>';
-  try{
-    const md=await fetchTree(sent, key, ep, model);
-    const warns=validateGrammar(md, sent);
-    const html=renderMd(md) + (warns.length? renderWarns(warns) : '');
-    treeBox.innerHTML=html;
-  }
-  catch(e){ treeBox.innerHTML='<div class="sysmsg">分析失败：'+(e.message||e)+'（检查 Key 或网络）</div>'; }
-};
 
-/* ===================== 小学语法校验器 ===================== */
-/* 纯 JS 规则校验，检测 AI 常见错误，不依赖任何模型。
-   返回 warns 数组，每项 {type, msg, fix}。空数组表示通过。 */
-function validateGrammar(md, sentence){
+/* —— 结构化语法校验器：遍历 JSON 树检测错误 —— */
+function validateJsonGrammar(root, sentence){
   const warns=[];
-  const low=md;
+  const rolesSeen={};
 
-  /* —— 规则1：动宾短语被误判为"中心语+定语" —— */
-  // 典型错误模式：把"读书"拆成 中心语:书 + 定语/修饰语:读
-  // 检测：同一节点附近同时出现 动词性字 + 名词性字，且名词被标成"中心语"，动词被标成"定语/修饰语"
-  const voMisFlag=/定语[：:]?\s*读|修饰语[：:]?\s*读|定语[：:]?\s*写|修饰语[：:]?\s*写/i.test(low)
-    && /中心语[：:]?\s*书|中心语[：:]?\s*字/i.test(low);
-  if(voMisFlag){
-    warns.push({
-      type:'动宾误判',
-      msg:'检测到"读书/写字"这类动宾短语被错误拆成"中心语+定语"。动宾短语里动词是中心，后面名词是宾语，不能当修饰关系。',
-      fix:'应改为：动宾短语"读书" → 动词(中心)：读 + 宾语：书'
-    });
-  }
-  // 通用版：凡出现"定语：X"+ "中心语：Y"且 X+Y 能在原句里拼成动宾(动词+名词)，提示
-  const dm=/定语[：:]?\s*([^\s，,）)\n]+)/g;
-  const zx=/中心语[：:]?\s*([^\s，,）)\n]+)/g;
-  let dmMatch, zxMatch; const dmWords=[], zxWords=[];
-  while((dmMatch=dm.exec(low))!==null) dmWords.push(dmMatch[1]);
-  while((zxMatch=zx.exec(low))!==null) zxWords.push(zxMatch[1]);
-  // 常见动宾对（小学范围）
-  const voPairs=[['读','书'],['写','字'],['吃','饭'],['喝','水'],['看','书'],['听','课'],['唱','歌'],['跳','舞'],['打','球'],['种','树'],['画','画'],['洗','澡'],['睡','觉'],['走','路'],['说','话']];
-  for(const [v,n] of voPairs){
-    if(dmWords.includes(v) && zxWords.includes(n) && !voMisFlag){
-      warns.push({
-        type:'动宾误判',
-        msg:`检测到"${v}${n}"被拆成"定语：${v} + 中心语：${n}"。"${v}"是动词，"${n}"是它的宾语，构成动宾短语，不是修饰关系。`,
-        fix:`应改为：动宾短语"${v}${n}" → 动词(中心)：${v} + 宾语：${n}`
-      });
-      break;
+  function walk(node, depth){
+    if(!node) return;
+    const role=node.role||'';
+    const pt=node.phrase_type||'';
+    const text=node.text||'';
+    rolesSeen[role]=(rolesSeen[role]||0)+1;
+
+    // 规则1：动宾短语内部结构检查
+    if(pt==='动宾短语'){
+      const kids=node.children||[];
+      const hasV=kids.some(c=>/动词/.test(c.role||''));
+      const hasO=kids.some(c=>c.role==='宾语');
+      const badModify=kids.some(c=>/定语|修饰/.test(c.role||''));
+      if(badModify){
+        warns.push({type:'动宾误判',msg:'动宾短语"'+text+'"里出现了"定语/修饰语"节点。动宾短语内部只能是"动词(中心)+宾语"，不能有修饰关系。',fix:'改为：动词(中心)：'+(text[0]||'')+' + 宾语：'+(text.slice(1)||'')});
+      } else if(!hasV || !hasO){
+        warns.push({type:'动宾结构不全',msg:'动宾短语"'+text+'"缺少"动词(中心)"或"宾语"节点。',fix:'补全为：动词(中心)+宾语'});
+      }
+    }
+    // 规则2：发现"定语：X + 中心语：Y"且原文含 X+Y 动宾对
+    const voPairs=[['读','书'],['写','字'],['吃','饭'],['喝','水'],['看','书'],['听','课'],['唱','歌'],['跳','舞'],['打','球'],['种','树'],['画','画'],['洗','澡'],['睡','觉'],['走','路'],['说','话']];
+    if(/定语|修饰/.test(role) && text.length===1){
+      const sib=(node._siblings||[]).filter(c=>/中心语/.test(c.role||''));
+      for(const [v,n] of voPairs){
+        if(text===v && sib.some(s=>s.text===n)){
+          warns.push({type:'动宾误判',msg:'"'+v+n+'"被拆成"定语：'+v+' + 中心语：'+n+'"。"'+v+'"是动词，"'+n+'"是宾语，构成动宾短语。',fix:'改为：动宾短语"'+v+n+'" → 动词(中心)：'+v+' + 宾语：'+n});
+        }
+      }
+    }
+    // 规则3：并列短语必须有连词子节点
+    if(pt==='并列短语'){
+      const kids=node.children||[];
+      const hasConj=kids.some(c=>c.role==='连词');
+      if(!hasConj){
+        warns.push({type:'连词遗漏',msg:'并列短语"'+text+'"里没有"连词"节点。并列短语必须含连词（和/与/或）。',fix:'在并列项之间补上 {"role":"连词","text":"和"}'});
+      }
+    }
+    // 递归，并给子节点注入兄弟引用（用于规则2）
+    if(node.children){
+      node.children.forEach(c=>{ c._siblings=node.children; walk(c, depth+1); });
     }
   }
+  walk(root, 0);
 
-  /* —— 规则2：连词未单独标出 —— */
-  // 原句含"和/与/或/及/并"等连词，但成分树里没出现"连词"标签
-  const hasConj=/[和与或及并]/.test(sentence);
-  const hasConjLabel=/连词/.test(low);
-  if(hasConj && !hasConjLabel){
-    warns.push({
-      type:'连词遗漏',
-      msg:'原句含连词（和/与/或/及/并），但成分树里没有"连词"标签。连词应单独标出，连接并列成分。',
-      fix:'请在并列短语中把连词单独标为"连词"，如：读书 和 写字（"和"=连词）'
-    });
-  }
-
-  /* —— 规则3：主谓宾缺失（简单句） —— */
-  // 只对短句(<=15字且无逗号分句)做完备性检查
+  // 规则4：简单句主谓宾完备性
   const isSimple=sentence.length<=15 && !/[，,；;]/.test(sentence);
   if(isSimple){
-    const hasSub=/主语/.test(low), hasPred=/谓语/.test(low), hasObj=/宾语/.test(low);
+    if(!rolesSeen['主语']) warns.push({type:'成分缺失',msg:'简单句缺少"主语"。',fix:'请补全主语'});
+    if(!rolesSeen['谓语']) warns.push({type:'成分缺失',msg:'简单句缺少"谓语"。',fix:'请补全谓语'});
     const chars=[...sentence].filter(c=>/[\u4e00-\u9fa5]/.test(c));
-    // 原句含明确名词性宾语倾向却没标宾语
-    if(hasSub && hasPred && !hasObj && chars.length>=4){
-      warns.push({
-        type:'成分缺失',
-        msg:'简单句已有主语、谓语，但缺少宾语。小学及物动词句通常主谓宾齐全，请确认是否漏标宾语。',
-        fix:'检查谓语后是否有宾语；如"我看书"应补全为 主语：我 + 谓语：看 + 宾语：书'
-      });
+    if(rolesSeen['主语']&&rolesSeen['谓语']&&!rolesSeen['宾语']&&chars.length>=4){
+      warns.push({type:'成分缺失',msg:'简单句有主谓但缺宾语，小学及物动词句通常主谓宾齐全。',fix:'检查谓语后是否有宾语'});
     }
-    if(!hasSub || !hasPred){
-      warns.push({
-        type:'成分缺失',
-        msg:'简单句必须同时有主语和谓语，当前成分树缺少'+(!hasSub?'主语':'')+' '+(!hasPred?'谓语':'')+'。',
-        fix:'请重新分析，确保主谓齐全'
-      });
-    }
-  }
-
-  /* —— 规则4：并列短语被拆散 —— */
-  // 原句含"A和B"模式，但成分树把 A、B 拆成两个独立宾语而非"并列短语"整体
-  const conjSplit=/和/.test(sentence) && (/宾语1|宾语2|宾语一|宾语二/.test(low)) && !/并列/.test(low);
-  if(conjSplit){
-    warns.push({
-      type:'并列拆散',
-      msg:'原句"A和B"是并列短语，应整体作为一个宾语，再往下分并列项；不应拆成"宾语1/宾语2"两个独立宾语。',
-      fix:'改为：宾语(并列短语)：读书和写字 → 并列项1：读书(动宾) + 连词：和 + 并列项2：写字(动宾)'
-    });
   }
 
   return warns;
 }
+
 function renderWarns(warns){
   return '<div style="margin-top:14px;padding:12px;border:1px solid #ef4444;border-radius:10px;background:rgba(239,68,68,.08)">'
     +'<div style="color:#fca5a5;font-weight:700;font-size:13px;margin-bottom:8px">⚠ 语法校验提醒（共 '+warns.length+' 处可疑）</div>'
@@ -504,6 +508,40 @@ function renderWarns(warns){
       +'</div>').join('')
     +'</div>';
 }
+
+/* —— 分析句子按钮：自动分句 + 逐句 JSON 分析 + 校验 —— */
+document.getElementById('btnSent').onclick=async ()=>{
+  const raw=document.getElementById('input').value.trim();
+  if(!raw){ treeBox.innerHTML='<div class="sysmsg">请先在上方输入课文/句子</div>'; return; }
+  const key=localStorage.getItem('xf_phx_key')||localStorage.getItem('phx_key');
+  const ep=localStorage.getItem('phx_endpoint')||'https://apihub.agnes-ai.com/v1/chat/completions';
+  const model=localStorage.getItem('phx_model')||'agnes-2.0-flash';
+  if(!key){ treeBox.innerHTML='<div class="sysmsg">未填 API Key。点 💬 → ⚙ 填入 Agnes Key 后即可分析。</div>'; return; }
+
+  const sents=splitSentences(raw);
+  treeBox.innerHTML='<div class="sysmsg">分析中…（共 '+sents.length+' 句）</div>';
+
+  const allHtml=[];
+  let allWarns=[];
+  for(let i=0;i<sents.length;i++){
+    const sent=sents[i];
+    try{
+      const json=await fetchTreeJson(sent, key, ep, model);
+      const treeHtml=renderJsonTree(json.root, true);
+      const warns=validateJsonGrammar(json.root, sent);
+      allWarns=allWarns.concat(warns);
+      allHtml.push('<div style="margin-bottom:18px">'+treeHtml+'</div>');
+      // 渐进式渲染：每分析完一句就刷新
+      treeBox.innerHTML=allHtml.join('')+(allWarns.length?renderWarns(allWarns):'');
+    }catch(e){
+      allHtml.push('<div class="sysmsg">第'+(i+1)+'句分析失败：'+(e.message||e)+'</div>');
+      treeBox.innerHTML=allHtml.join('');
+    }
+  }
+  // 最终渲染
+  const passBadge=allWarns.length===0?'<div style="color:#86efac;font-size:12px;margin-bottom:8px">✓ 语法校验通过</div>':'';
+  treeBox.innerHTML=passBadge+allHtml.join('')+(allWarns.length?renderWarns(allWarns):'');
+};
 
 /* ===================== 分析按钮 ===================== */
 document.getElementById('btnAnalyze').onclick=()=>{
