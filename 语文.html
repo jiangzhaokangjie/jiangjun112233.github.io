@@ -302,34 +302,25 @@ function getPinyin(s){
 }
 function speakZh(text, btn){
   if(!text) return;
-  /* 按钮状态反馈：busy */
   if(btn){ btn.classList.add('busy'); btn.disabled=true; }
   var done=false;
   var finish=function(ok){
     if(done) return; done=true;
     if(btn){ btn.classList.remove('busy'); btn.disabled=false; }
-    if(!ok){ showRecToast('朗读不可用，请检查网络或换浏览器', 'no'); }
   };
-  /* 1. Web Speech API */
+  /* 优先用 Web Speech API，不检查 voices 是否有中文——大部分浏览器设置 lang 后即可朗读 */
   if('speechSynthesis' in window){
-    var tryWeb=function(voices){
-      var zh=voices.find(function(v){ return /zh|cmn/i.test(v.lang); });
-      if(zh){
-        var u=new SpeechSynthesisUtterance(text); u.lang='zh-CN'; u.rate=0.8;
-        u.onend=function(){ finish(true); };
-        u.onerror=function(){ /* Web Speech 失败，走百度 */ speakBaiduZh(text, finish); };
-        try{ window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); return true; }catch(e){ return false; }
-      }
-      return false;
-    };
-    if(tryWeb(window.speechSynthesis.getVoices())) return;
-    var webDone=false;
-    var webFinish=function(){ if(webDone) return; webDone=true; if(!tryWeb(window.speechSynthesis.getVoices())) speakBaiduZh(text, finish); };
-    window.speechSynthesis.addEventListener('voiceschanged', webFinish, {once:true});
-    setTimeout(webFinish, 1200);
-    return;
+    var u=new SpeechSynthesisUtterance(text);
+    u.lang='zh-CN'; u.rate=0.8;
+    /* 尝试找中文 voice，找不到也直接 speak（浏览器会自动选默认语音） */
+    var voices=window.speechSynthesis.getVoices();
+    var zh=voices.find(function(v){ return /zh|cmn/i.test(v.lang); });
+    if(zh) u.voice=zh;
+    u.onend=function(){ finish(true); };
+    u.onerror=function(){ speakBaiduZh(text, finish); };
+    try{ window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); return; }catch(e){ /* 走百度兜底 */ }
   }
-  /* 2. 无 Web Speech，直接走百度 → 有道 → Edge TTS */
+  /* 无 Web Speech 或 speak 失败，走百度 → 有道 */
   speakBaiduZh(text, finish);
 }
 function speakBaiduZh(text, onFail){
@@ -337,34 +328,19 @@ function speakBaiduZh(text, onFail){
   var a=new Audio(url);
   a.onended=function(){ if(onFail) onFail(true); };
   a.onerror=function(){
-    /* 3. 有道 TTS fallback */
     var u2='https://dict.youdao.com/dictvoice?type=1&audio='+encodeURIComponent(text);
     var a2=new Audio(u2);
     a2.onended=function(){ if(onFail) onFail(true); };
-    a2.onerror=function(){
-      /* 4. Edge TTS (via readaloud iframe) — 最后兜底 */
-      speakEdgeTTS(text, onFail);
-    };
-    a2.play().catch(function(){ speakEdgeTTS(text, onFail); });
+    a2.onerror=function(){ if(onFail) onFail(false); };
+    a2.play().catch(function(){ if(onFail) onFail(false); });
   };
   a.play().catch(function(){
-    /* 百度播放失败，走有道 */
     var u2='https://dict.youdao.com/dictvoice?type=1&audio='+encodeURIComponent(text);
     var a2=new Audio(u2);
     a2.onended=function(){ if(onFail) onFail(true); };
-    a2.onerror=function(){ speakEdgeTTS(text, onFail); };
-    a2.play().catch(function(){ speakEdgeTTS(text, onFail); });
+    a2.onerror=function(){ if(onFail) onFail(false); };
+    a2.play().catch(function(){ if(onFail) onFail(false); });
   });
-}
-function speakEdgeTTS(text, onFail){
-  /* Edge TTS 兜底：通过 readaloud 的公开代理 */
-  try{
-    var url='https://readaloud.outpdf.com/voice?text='+encodeURIComponent(text)+'&rate=0&voice=zh-CN-XiaoxiaoNeural';
-    var a=new Audio(url);
-    a.onended=function(){ if(onFail) onFail(true); };
-    a.onerror=function(){ if(onFail) onFail(false); };
-    a.play().catch(function(){ if(onFail) onFail(false); });
-  }catch(e){ if(onFail) onFail(false); }
 }
 
 /* ===================== 提取汉字 ===================== */
@@ -412,7 +388,8 @@ function renderGrid(el, han){
       /* CDN 全部失败：显示静态字 + 提示，点字可重试 */
       el.classList.add('fallback');
       el.innerHTML='<div class="fb-char">'+han+'</div><div class="fb-tip">点字重试加载笔顺</div>';
-      el.onclick=function(){
+      el.onclick=function(ev){
+        ev.stopPropagation();
         el.classList.remove('fallback');
         el.innerHTML='<div style="font-size:11px;color:#999;padding:20px 0">加载中…</div>';
         var s=document.createElement('script');
@@ -435,11 +412,11 @@ function renderGrid(el, han){
       width:w, height:w, padding:6,
       showOutline:true, strokeColor:'#1d4ed8', radicalColor:'#16a34a', showCharacter:true
     });
-    el.onclick=function(){ try{ writer.animateCharacter(); }catch(e){} };
+    el.onclick=function(ev){ ev.stopPropagation(); try{ writer.animateCharacter(); }catch(e){} };
   }catch(e){
     el.classList.add('fallback');
     el.innerHTML='<div class="fb-char">'+han+'</div><div class="fb-tip">点字看笔顺</div>';
-    el.onclick=function(){ try{ if(typeof HanziWriter!=='undefined' && window.__hwReady){ el.classList.remove('fallback'); el.innerHTML=''; HanziWriter.create(el, han, {width:el.clientWidth||104,height:el.clientHeight||104,padding:6,showOutline:true,strokeColor:'#1d4ed8',radicalColor:'#16a34a',showCharacter:true}).animateCharacter(); } }catch(e2){} };
+    el.onclick=function(ev){ ev.stopPropagation(); try{ if(typeof HanziWriter!=='undefined' && window.__hwReady){ el.classList.remove('fallback'); el.innerHTML=''; HanziWriter.create(el, han, {width:el.clientWidth||104,height:el.clientHeight||104,padding:6,showOutline:true,strokeColor:'#1d4ed8',radicalColor:'#16a34a',showCharacter:true}).animateCharacter(); } }catch(e2){} };
   }
 }
 
@@ -455,9 +432,9 @@ function openDetail(w){
   document.getElementById('dPy').textContent='拼音：'+(py||'—');
   document.getElementById('dDesc').textContent='';
   document.getElementById('dZc').innerHTML='<div class="t">组词</div><div class="items">'+(zc.length? zc.map(z=>'<span>'+z+'</span>').join('') : '<span>—</span>')+'</div>';
-  renderGrid(document.getElementById('dGrid'), w[0]);
-  document.getElementById('dGrid').onclick=()=>{ const w0=document.getElementById('dGrid'); };
   sheet.classList.add('show');
+  /* 先 show 再 renderGrid，确保 dGrid 有正确的 clientWidth（200px） */
+  renderGrid(document.getElementById('dGrid'), w[0]);
 }
 document.getElementById('dClose').onclick=()=>sheet.classList.remove('show');
 document.getElementById('dPlay').onclick=function(){ if(currentWord) speakZh(currentWord, this); };
@@ -772,14 +749,22 @@ function startWebFollow(btn, targetWord){
   try{ reco.start(); }catch(e){ done=true; btn.classList.remove('rec'); showRecToast('启动失败，请再点一次','no'); }
   setTimeout(()=>{ if(!done){ done=true; btn.classList.remove('rec'); showRecToast('识别无响应，请确认已填「讯飞语音识别」密钥（国产安卓必需）','no'); } }, 8000);
 }
+/* 撒礼花时交替播放"完美"和"你真棒" */
+let _praiseToggle=false;
+function praiseAndConfetti(isBig){
+  _praiseToggle=!_praiseToggle;
+  var praise=_praiseToggle ? '完美' : '你真棒';
+  speakZh(praise);
+  if(isBig) fireConfetti.big(); else fireConfetti.small();
+}
 function judgeFollow(btn, heard, targetWord){
   btn.classList.remove('rec','busy');
   const h=normStr(heard), t=normStr(targetWord);
   if(!t){ showRecToast('单词为空','no'); return; }
-  if(!h){ showRecToast('没听到声音，点 🎤 后立刻大声读出（不要等）','no'); return; }
-  if(h===t || h.indexOf(t)>=0 || t.indexOf(h)>=0){ btn.classList.add('busy'); showRecToast('🎉 读对啦！','ok'); fireConfetti.big(); setTimeout(()=>btn.classList.remove('busy'),700); return; }
+  if(!h){ showRecToast('没听到声音，点 🎤 后立刻大���读出（不要等）','no'); return; }
+  if(h===t || h.indexOf(t)>=0 || t.indexOf(h)>=0){ btn.classList.add('busy'); showRecToast('🎉 读对啦！','ok'); praiseAndConfetti(true); setTimeout(()=>btn.classList.remove('busy'),700); return; }
   const d=editDist(h,t); const tol=Math.max(1, Math.floor(t.length*0.25));
-  if(d<=tol || (d===1 && Math.abs(h.length-t.length)<=1)){ btn.classList.add('busy'); showRecToast('很接近！小礼花送上 🎊','ok'); fireConfetti.small(); setTimeout(()=>btn.classList.remove('busy'),700); }
+  if(d<=tol || (d===1 && Math.abs(h.length-t.length)<=1)){ btn.classList.add('busy'); showRecToast('很接近！小礼花送上 🎊','ok'); praiseAndConfetti(false); setTimeout(()=>btn.classList.remove('busy'),700); }
   else { showRecToast('听到「'+heard+'」，再试一次 💪','no'); }
 }
 function startFollowRead(btn, targetWord){

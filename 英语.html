@@ -423,6 +423,14 @@ function editDist(a,b){
   return dp[m][n];
 }
 /* 跟读结果比对 + 礼花反馈（讯飞 / WebSpeech 共用） */
+/* 撒礼花时交替播放 "perfect" 和 "Good job" */
+let _praiseToggle=false;
+function praiseAndConfetti(isBig){
+  _praiseToggle=!_praiseToggle;
+  var praise=_praiseToggle ? 'perfect' : 'Good job';
+  speakEn(praise);
+  if(isBig) fireConfetti.big(); else fireConfetti.small();
+}
 function judgeFollow(btn, heard, targetWord){
   btn.classList.remove('rec','busy');
   const h = normWord(heard);
@@ -432,7 +440,7 @@ function judgeFollow(btn, heard, targetWord){
   if(h===t){
     btn.classList.add('busy');
     showRecToast('🎉 读对啦！', 'ok');
-    fireConfetti.big();
+    praiseAndConfetti(true);
     setTimeout(()=>btn.classList.remove('busy'), 700);
     return;
   }
@@ -442,7 +450,7 @@ function judgeFollow(btn, heard, targetWord){
   if(d<=tol || (d===1 && Math.abs(h.length-t.length)<=1)){
     btn.classList.add('busy');
     showRecToast('很接近！小礼花送上 🎊', 'ok');
-    fireConfetti.small();
+    praiseAndConfetti(false);
     setTimeout(()=>btn.classList.remove('busy'), 700);
   } else {
     showRecToast('听到「'+heard+'」，再试一次 💪', 'no');
