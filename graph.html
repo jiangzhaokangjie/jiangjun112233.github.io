@@ -186,7 +186,7 @@
       <option value="统计与概率">统计与概率</option>
       <option value="综合与实践">综合与实践</option>
     </select>
-    <input type="text" id="search" placeholder="搜索知识点，如：分数 / 面积 / 方程">
+    <input type="text" id="search" placeholder="搜索知识点，如：分数 / 面积 / 方程" autocomplete="off">
     <button id="reset" style="background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer">重置</button>
   </div>
 </header>
@@ -698,13 +698,21 @@ document.getElementById('reset').addEventListener('click',()=>{
 function applyFilter(){
   const dom=document.getElementById('domainFilter').value;
   const q=document.getElementById('search').value.trim();
+  // 防呆：搜索词非空但零匹配（几乎只可能是 Edge 自动填充注入的脏数据），
+  // 则不将其当作有效过滤条件，避免整张图谱瞬间被隐藏成「只有线条」。
+  let useQ = !!q;
+  if(q){
+    const matched = NODES.filter(n=>n.name.includes(q)||n.id.includes(q)).length;
+    if(matched===0) useQ=false;
+  }
   nodeEls.forEach(o=>{
     const okD = !dom || o.n.domain===dom;
-    const okQ = !q || o.n.name.includes(q) || o.n.id.includes(q);
+    const okQ = !useQ || o.n.name.includes(q) || o.n.id.includes(q);
     o.g.style.display = (okD&&okQ)?'':'none';
   });
-  if(q && !dom){
-    const hit=NODES.find(n=>n.name.includes(q));
+  // 仅当有真实命中且未选领域时才自动选中首个命中项
+  if(useQ && !dom){
+    const hit=NODES.find(n=>n.name.includes(q)||n.id.includes(q));
     if(hit) select(hit.id);
   }
 }
