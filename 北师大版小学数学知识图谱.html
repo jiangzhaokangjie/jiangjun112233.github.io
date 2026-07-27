@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
 <title>北师大版小学数学 · 知识点串联图谱</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1d4ed8">
@@ -12,6 +13,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root{
+    color-scheme:dark;     /* 声明本页自管深色，阻止 Edge「强制深色」把亮色节点压暗导致看不见 */
     --c-num:#2563eb;      /* 数与代数 */
     --c-geo:#16a34a;      /* 图形与几何 */
     --c-sta:#ea580c;      /* 统计与概率 */
@@ -47,8 +49,8 @@
   .band{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
   .band .g{font-size:10px;width:30px;text-align:center;padding:3px 0;border-radius:4px;background:#0f172a;border:1px solid var(--line);color:var(--muted)}
   .band .g.on{background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:600}
-  .node circle{cursor:pointer;stroke:rgba(255,255,255,0.18);stroke-width:1.2}
-  .node text{pointer-events:none;font-size:11px;fill:var(--txt);paint-order:stroke;stroke:#0f172a;stroke-width:3px}
+  .node circle{cursor:pointer;stroke:rgba(255,255,255,0.18);stroke-width:1.2;forced-color-adjust:none}
+  .node text{pointer-events:none;font-size:11px;fill:var(--txt);paint-order:stroke;stroke:#0f172a;stroke-width:3px;forced-color-adjust:none}
   .dim{opacity:.12}
   .edge{stroke:#475569;stroke-width:1}
   .edge.hot{stroke:#fbbf24;stroke-width:2}
@@ -978,10 +980,15 @@ function wpSystemPrompt(){
   }
 }
 画图要点：
-- 所有行共用同一比例尺：每行 parts 的 value 之和即该行总长度，整个图按「最长那行」缩放到满宽，所以更长的量会明显更长，"多/少"的部分出现在右侧。
-- value 用与题目一致的具体数（如"多12"就写 12），让比例真实。
-- 同一类量用同色（如都代表"1份"用 #3b82f6 蓝），"多出来/相差"的部分用对比色 #ef4444 红。
-- 不需要标注差值时可不写 diffs；题目不适合线段图时 diagram 可省略，只给 analysis。
+- 所有行共用同一比例尺：每行 parts 的 value 之和即该行总长度，整个图按「最长那行」缩放到满宽，所以更长的量会明显更长，「多/少」的部分出现在右侧。
+- value 用与题目一致的具体数（如「多12」就写 12），让比例真实。
+- 同一类量用同色（如都代表「1份」用 #3b82f6 蓝），「多出来/相差」的部分用对比色 #ef4444 红。
+- diffs 标签严格对齐「题目所问」：
+  · 题目问「一共/共/总共/合计多少元」 → 在 rows 末尾追加一行「两天/两队/两天一共」，parts 写最终合计值（可暂写 ?，再用 #10b981 绿色区分），diff 标「两天一共多少元?」（或用答案），**不要再把「差值」自动塞回去**。
+  · 题目问「多多少/差多少」 → diff 标「甲比乙多X」。
+  · 题目只描述关系、让你求具体数（如「甲比乙多12，共60，求各」） → diff 标已知关系，让 rows 自然展示大小。
+- 例：题「今天收入480元，比昨天多200元，两天一共有多少」应这样画——昨天:480｜今天:480+200｜两天一共:?——diff 标「两天一共多少元?」，不要再标「今天比昨天多200」。
+- 不需要标注时可不写 diffs；题目不适合线段图时 diagram 可省略，只给 analysis。
 - 只在 json 块内写图，开头那段话用自然语言即可，不要加 Markdown 标题或列表符号。`;
 }
 function buildWPPrompt(text){
