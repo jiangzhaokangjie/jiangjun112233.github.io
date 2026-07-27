@@ -510,8 +510,11 @@ const nodeEls = NODES.map(n=>{
   const g=document.createElementNS(SVGNS,'g'); g.setAttribute('class','node');
   const c=document.createElementNS(SVGNS,'circle');
   c.setAttribute('r', 11); c.setAttribute('fill', COLOR[n.domain]);
+  c.setAttribute('cx', n.x); c.setAttribute('cy', n.y);
   const t=document.createElementNS(SVGNS,'text');
-  t.setAttribute('text-anchor','middle'); t.setAttribute('dy','3'); t.textContent=n.name;
+  t.setAttribute('text-anchor','middle'); t.setAttribute('dy','3');
+  t.setAttribute('x', n.x); t.setAttribute('y', n.y);
+  t.textContent=n.name;
   g.appendChild(c); g.appendChild(t);
   g.addEventListener('click',ev=>{ev.stopPropagation(); if(justLongPressed){justLongPressed=false;return;} select(n.id);});
   g.addEventListener('pointerdown',ev=>onNodeDown(ev,n));
@@ -555,7 +558,10 @@ function tick(){
     l.setAttribute('x2',b.x); l.setAttribute('y2',b.y);
   });
   nodeEls.forEach(o=>{
-    o.g.setAttribute('transform',`translate(${o.n.x},${o.n.y})`);
+    o.c.setAttribute('cx', o.n.x);
+    o.c.setAttribute('cy', o.n.y);
+    o.t.setAttribute('x', o.n.x);
+    o.t.setAttribute('y', o.n.y);
   });
   requestAnimationFrame(tick);
 }
@@ -984,10 +990,11 @@ function wpSystemPrompt(){
 - value 用与题目一致的具体数（如「多12」就写 12），让比例真实。
 - 同一类量用同色（如都代表「1份」用 #3b82f6 蓝），「多出来/相差」的部分用对比色 #ef4444 红。
 - diffs 标签严格对齐「题目所问」：
-  · 题目问「一共/共/总共/合计多少元」 → 在 rows 末尾追加一行「两天/两队/两天一共」，parts 写最终合计值（可暂写 ?，再用 #10b981 绿色区分），diff 标「两天一共多少元?」（或用答案），**不要再把「差值」自动塞回去**。
-  · 题目问「多多少/差多少」 → diff 标「甲比乙多X」。
-  · 题目只描述关系、让你求具体数（如「甲比乙多12，共60，求各」） → diff 标已知关系，让 rows 自然展示大小。
-- 例：题「今天收入480元，比昨天多200元，两天一共有多少」应这样画——昨天:480｜今天:480+200｜两天一共:?——diff 标「两天一共多少元?」，不要再标「今天比昨天多200」。
+  · 题目问「一共/共/总共/合计多少元」 → diff 直接写成"一共有多少?"（提问化，跟题干原句同款），不要再把"差值"塞回去。
+  · 题目问「多多少/差多少」 → diff 标"甲比乙多X"。
+  · 题目只描述关系、让你求具体数（如"甲比乙多12，共60，求各"） → diff 标已知关系（如"甲比乙多12"），让 rows 自然展示大小。
+- 不要为求"一共"再单独加一行"两天/两队一共"——只有两行、brace 红字写"一共有多少?"是用户偏好的画法。
+- 例：题"今天收入480元，比昨天多200元，两天一共有多少" → rows 仅画 昨天:480、今天:480+200，diff 标"一共有多少?"。
 - 不需要标注时可不写 diffs；题目不适合线段图时 diagram 可省略，只给 analysis。
 - 只在 json 块内写图，开头那段话用自然语言即可，不要加 Markdown 标题或列表符号。`;
 }
