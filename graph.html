@@ -980,52 +980,72 @@ function renderGeometry(ans){
 function escHtml(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function wpSystemPrompt(){
   return `你是一位善于用「线段图」帮小学生拆解应用题的数学辅导老师。
-当用户发来一道应用题时，请：
-1. 先用 1~2 句鼓励、引导的话开头（自然语言，不要用任何 Markdown 符号）。
-2. 然后输出一个 \`\`\`json 代码块，结构必须严格如下：
+
+⚠️⚠️⚠️ 第一步（最关键）：判断题目类型 → 强制选 diagram.type ⚠️⚠️⚠️
+下面这张决策表是硬性规则。题目只要命中任意一条关键词，就必须用对应的图；否则用默认的 rows。
+
+| 题目关键词 / 题型 | diagram.type 必须设为 |
+|---|---|
+| 相遇 / 相向而行 / 同时出发 / 几分钟后相遇 / 两地相距 | "trip" + kind:"meet" |
+| 追及 / 追上 / 落后 / 乙先走X米 / 几分钟后追上 / 速度差 | "trip" + kind:"catch" |
+| 原有X → 取走/卖了/用了/减少X → 又给/又进了/增加了X / 先…再…最后… / 上午…下午… / 第一天…第二天… / 一涨一跌 / 多步变化 | "timeline" + stages |
+| 几分之几 / 百分之 / 几成 / 占 / 单位1 / 相当于 / 折扣 / 打X折 | "fraction" + denominator/numerator |
+| 其他（求总数 / 比多少 / 倍 / 和差 / 和倍 / 差倍 / 归一归总 / 部分整体） | rows + diffs |
+
+🚫 绝对不要默认全用 rows！行程题硬性 trip，连续变化题硬性 timeline，分数百分数题硬性 fraction。选错图型是常见错误，请严格按上表。
+
+1. 先用 1~2 句鼓励、引导的话开头（自然语言，不要 Markdown 符号）。
+2. 然后输出 \`\`\`json 代码块（严格合法、可 JSON.parse）：
 {
   "analysis": {
     "已知条件": ["条件1", "条件2"],
-    "所求问题": "一句话说明求什么",
-    "数量关系": "用算式或文字说明量与量的关系",
+    "所求问题": "一句话求什么",
+    "数量关系": "算式或文字",
     "解题思路": ["步骤1", "步骤2"]
   },
-  "diagram": {
-    "rows": [
-      {"name": "乙队（1份）", "parts": [{"label":"1份","value":1,"color":"#3b82f6"}], "caption": "乙队 = 1 份"},
-      {"name": "甲队", "parts": [{"label":"1份","value":1,"color":"#3b82f6"},{"label":"多12","value":12,"color":"#ef4444"}], "caption": "甲队 = 乙队 + 12"}
-    ],
-    "diffs": [{"rows":[0,1], "label": "甲比乙多12人"}]
-  }
+  "diagram": { ...按上表选对应类型... }
 }
-画图要点：
-- 所有行共用同一比例尺：每行 parts 的 value 之和即该行总长度，整个图按「最长那行」缩放到满宽，所以更长的量会明显更长，「多/少」的部分出现在右侧。
-- value 用与题目一致的具体数（如「多12」就写 12），让比例真实。
-- 同一类量用同色（如都代表「1份」用 #3b82f6 蓝），「多出来/相差」的部分用对比色 #ef4444 红。
-- diffs 标签严格对齐「题目所问」：
-  · 题目问「一共/共/总共/合计多少元」 → diff 直接写成"一共有多少?"（提问化，跟题干原句同款），不要再把"差值"塞回去。
-  · 题目问「多多少/差多少」 → diff 标"甲比乙多X"。
-  · 题目只描述关系、让你求具体数（如"甲比乙多12，共60，求各"） → diff 标已知关系（如"甲比乙多12"），让 rows 自然展示大小。
-- 不要为求"一共"再单独加一行"两天/两队一共"——只有两行、brace 红字写"一共有多少?"是用户偏好的画法。
-- 例：题"今天收入480元，比昨天多200元，两天一共有多少" → rows 仅画 昨天:480、今天:480+200，diff 标"一共有多少?"。
-- 四种图画法，按题型在 diagram 里选一种（不要两种都写）：
-  ① "对比/部分-整体"题（求一共、比多少、甲比乙多几、谁比谁少、倍、和差、和倍、差倍、归一归总）→ 用上面的 rows+diffs 形式（默认）。
-  ② "连续变化/多步变化"题（原有→拿走→又给、上午→下午、先涨后跌）→ 用 "type":"timeline"，stages 按时间顺序列出每个状态（每 value 是「当时」数量，非增量；其后 delta 为相对上一阶段增减，箭头方向自动）：
-     {"type":"timeline","stages":[{"name":"原有糖果","value":48},{"name":"妈妈拿走19颗","value":29,"delta":-19},{"name":"爸爸又给30颗","value":59,"delta":30}]}
-     · 例：题"原有48颗，拿走19，又给30，现在多少" → 如上 stages，analysis 给 48-19+30=59。
-  ③ "行程问题"题（相遇 / 追及）→ 用 "type":"trip"，kind 取 "meet"（相向）或 "catch"（同向追及），movers 列出每个物体：
-     相遇：{"type":"trip","kind":"meet","total":600,"leftLabel":"甲地","rightLabel":"乙地","movers":[{"name":"甲(60米/分)","dist":300},{"name":"乙(40米/分)","dist":300,"from":"right"}],"meet":300,"meetLabel":"相遇","caption":"(60+40)×5=600"}
-     追及：{"type":"trip","kind":"catch","movers":[{"name":"甲(80米/分)","dist":800},{"name":"乙(60米/分)","dist":600,"from":"right","offset":200}],"meet":800,"meetLabel":"追上","caption":"200÷(80-60)=10分"}
-     · meet=相遇/追及点距左端距离；catch 时乙用 from:"right" 且 offset 为领先距离；caption 写数量关系式。
-  ④ "分数 / 百分数"题（求一个数的几分之几、降价几成、占百分之几）→ 用 "type":"fraction"，画「单位1」等分、分子着色、标分率与结果：
-     {"type":"fraction","unit":40,"unitLabel":"全班人数","denominator":5,"numerator":3,"rate":"3/5","shadedLabel":"男生","result":24,"caption":"40×3/5=24"}
-     {"type":"fraction","unit":200,"unitLabel":"原价","denominator":10,"numerator":8,"rate":"80%","shadedLabel":"现价","result":160,"caption":"200×80%=160"}
-     · denominator 为分母（等份数），numerator 为分子（着色份数），rate 是分率文字（如 3/5、80%），unit 是「单位1」对应的实际量。
-- 不需要标注时可不写 diffs；题目不适合线段图时 diagram 可省略，只给 analysis。
-- 只在 json 块内写图，开头那段话用自然语言即可，不要加 Markdown 标题或列表符号。`;
+
+【① rows + diffs】（求总数/比多少/倍/和差/归一）
+{
+  "rows":[
+    {"name":"乙","parts":[{"label":"1份","value":1,"color":"#3b82f6"}],"caption":"乙"},
+    {"name":"甲","parts":[{"label":"1份","value":1,"color":"#3b82f6"},{"label":"多12","value":12,"color":"#ef4444"}],"caption":"甲=乙+12"}
+  ],
+  "diffs":[{"rows":[0,1],"label":"甲比乙多12"}]
+}
+• 各行 value 共用比例尺，按最长那行缩放到满宽；同一类量同色；value 用题目原数。
+• 题目问「一共/共/总共」→ diff 直接写"一共有多少?"；问「多多少」→ diff 写"甲比乙多X"。
+
+【② timeline】（连续变化/多步变化）
+{"type":"timeline","stages":[
+  {"name":"原有糖果","value":48},
+  {"name":"妈妈拿走19颗","value":29,"delta":-19},
+  {"name":"爸爸又给30颗","value":59,"delta":30}
+]}
+• stages 按时间顺序排，每个 value 是「当时」数量（不是增量）；首个不写 delta，之后 delta 为相对前一阶段变化（增为正、减为负），箭头方向自动左右。
+
+【③ trip】（相遇/追及）
+相遇：{"type":"trip","kind":"meet","total":600,"leftLabel":"甲地","rightLabel":"乙地","movers":[{"name":"甲(60米/分)","dist":300},{"name":"乙(40米/分)","dist":300,"from":"right"}],"meet":300,"meetLabel":"相遇","caption":"(60+40)×5=600"}
+追及：{"type":"trip","kind":"catch","movers":[{"name":"甲(80米/分)","dist":800},{"name":"乙(60米/分)","dist":600,"from":"right","offset":200}],"meet":800,"meetLabel":"追上","caption":"200÷(80-60)=10分"}
+• meet=相遇/追及点距左端距离；catch 时乙 from:"right" 且 offset 为领先距离。
+
+【④ fraction】（分数/百分数）
+{"type":"fraction","unit":40,"unitLabel":"全班人数","denominator":5,"numerator":3,"rate":"3/5","shadedLabel":"男生","result":24,"caption":"40×3/5=24"}
+{"type":"fraction","unit":200,"unitLabel":"原价","denominator":10,"numerator":8,"rate":"80%","shadedLabel":"现价","result":160,"caption":"200×80%=160"}
+• denominator 是分母（等份数），numerator 是分子（着色份数），rate 是分率文字（3/5、80%、几成），unit 是单位1对应的实际量。
+
+通用：开头那段用自然语言不 Markdown；不适合画图时 diagram 可省只给 analysis。`;
 }
 function buildWPPrompt(text){
-  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出线段图：\n\n${text}\n\n（要求：先用 1~2 句引导语，再输出 \`\`\`json 块，含 analysis 与 diagram。\n- 对比/部分-整体/倍/和差倍/归一归总题：diagram 用 rows（各行 value 共用比例尺，差值用 diffs 标注）。\n- 连续变化/多步变化题：diagram 用 {"type":"timeline","stages":[{"name","value","delta?"}]} 按时间顺序列出每个状态。\n- 行程问题（相遇/追及）：diagram 用 {"type":"trip","kind":"meet|catch","movers":[{"name","dist","from?","offset?"}],"meet":距离,"caption":"关系式"}。\n- 分数/百分数题：diagram 用 {"type":"fraction","unit":实际量,"unitLabel":"单位名","denominator":分母,"numerator":分子,"rate":"3/5 或 80%","result":结果}。）`;
+  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出线段图：\n\n${text}\n\n⚠️ 第一步必须先按下面决策表选 diagram.type（不要默认全用 rows）：
+• 相遇 / 相向而行 / 同时出发 / 几分钟后相遇 → 必须 {"type":"trip","kind":"meet",...}
+• 追及 / 追上 / 乙先走X米 / 几分钟后追上 → 必须 {"type":"trip","kind":"catch",...}
+• 原有→拿走/卖了→又给/又进 / 先…再…最后 / 多步变化 → 必须 {"type":"timeline","stages":[...]}
+• 几分之几 / 百分之 / 几成 / 单位1 / 打X折 → 必须 {"type":"fraction",...}
+• 其他普通题（求总数/比多少/倍/和差/归一/部分整体）→ 用 rows + diffs
+
+输出格式：先用 1~2 句自然语言引导，再输出 \`\`\`json 块（含 analysis + diagram，按上表选对应 diagram 结构）。`;
 }
 function parseWP(ans){
   const m = ans.match(/```(?:json)?\s*([\s\S]*?)```/);
