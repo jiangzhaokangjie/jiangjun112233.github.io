@@ -142,12 +142,19 @@
   .wp-h{font-weight:600;color:#fbbf24;font-size:13px;margin:9px 0 3px}
   .wp-p{font-size:13px;color:#e2e8f0;line-height:1.6}
   .wp-analysis ul,.wp-analysis ol{margin:2px 0 2px 18px;font-size:13px;color:#cbd5e1;line-height:1.65}
-  .seg-diagram{margin:10px 0 4px;background:#0f172a;border:1px solid var(--line);border-radius:10px;padding:8px}
+  .seg-diagram{margin:10px 0 4px;background:#ffffff;border:1px solid #d1d5db;border-radius:10px;padding:10px 6px 6px}
   .seg-diagram svg{display:block}
-  .seg-name{fill:#e2e8f0;font-size:12px;dominant-baseline:middle}
-  .seg-pl{fill:#0f172a;font-size:11px;font-weight:700;text-anchor:middle;dominant-baseline:middle}
-  .seg-cap{fill:#94a3b8;font-size:11px;dominant-baseline:middle}
-  .seg-diff{fill:#f59e0b;font-size:11px;font-weight:700;dominant-baseline:middle}
+  .seg-name{fill:#1f2937;font-size:19px;dominant-baseline:middle;font-weight:700}
+  .seg-part-label{font-size:18px;font-weight:700;text-anchor:middle;dominant-baseline:middle}
+  .seg-cap{fill:#6b7280;font-size:15px;dominant-baseline:hanging}
+  .seg-diff{fill:#ea580c;font-size:18px;font-weight:700;dominant-baseline:middle}
+  .geo-card{margin:8px 0 2px;background:#ffffff;border:1px solid #d1d5db;border-radius:10px;padding:8px 6px}
+  .geo-step{margin:10px 0 2px;border-left:3px solid #2563eb;padding:4px 10px;background:#0f172a;border-radius:0 8px 8px 0}
+  .geo-step-h{font-weight:600;color:#60a5fa;font-size:14px;margin-bottom:2px}
+  .geo-lbl{font-size:15px;font-weight:700;dominant-baseline:middle;text-anchor:middle}
+  .geo-len{font-size:14px;font-weight:700;dominant-baseline:middle}
+  .geo-ang{font-size:14px;font-weight:700;dominant-baseline:middle}
+  .geo-txt{font-size:15px;font-weight:600;dominant-baseline:middle}
   .msg.a .hd{font-weight:700;margin:6px 0 4px;color:#fbbf24}
   .msg.a ul{margin:4px 0;padding-left:18px}
   .msg.a li{margin:2px 0}
@@ -155,6 +162,12 @@
   @media (max-width:768px){
     .chat{right:0;left:0;bottom:0;width:100%;max-width:100%;height:82vh;border-radius:14px 14px 0 0}
     .fab{right:14px;bottom:14px}
+    .msg{font-size:15px}
+    .wp-h{font-size:15px}
+    .wp-p{font-size:15px}
+    .wp-analysis ul,.wp-analysis ol{font-size:15px}
+    .chat-in textarea,.chat-in button{font-size:15px}
+    .chat-quick button{font-size:13px;padding:6px 12px}
   }
 </style>
 </head>
@@ -213,6 +226,7 @@
     <button data-q="用生活中的例子讲讲这块，让我听懂">🧸 讲给我听</button>
     <button data-q="把当前知识点和前置来路串起来讲一遍">🔗 串联讲解</button>
     <button id="chatWP">📊 应用题线段图</button>
+    <button id="chatGeo">📐 几何</button>
     <button data-q="清空对话">🗑 清空</button>
   </div>
   <div class="chat-in">
@@ -783,7 +797,7 @@ document.getElementById('setSave').onclick=()=>{
 // 快捷指令
 document.getElementById('chatQuick').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
-  if(b.id==='chatWP') return;
+  if(b.id==='chatWP' || b.id==='chatGeo') return;
   if(b.dataset.q==='清空对话'){ chatHistory=[]; chatMsgs.innerHTML=''; addMsg('system','对话已清空。'); return; }
   sendChat(b.dataset.q, true);
 });
@@ -821,6 +835,123 @@ document.getElementById('chatCopy').onclick=copyPromptNow;
 
 /* ===================== 应用题综合分析 + 线段图 ===================== */
 let wpMode=false;
+let geoMode=false;
+function geoSystemPrompt(){
+  return `你是一位擅长用「画图 + 辅助线 + 变换（平移/旋转/切割/拼补）」帮小学生拆解几何题的数学老师。
+当用户发来一道几何题（面积、周长、图形变换等）时，请：
+1. 先用 1~2 句鼓励、引导的话开头（自然语言，不要 Markdown）。
+2. 然后输出一个 \`\`\`json 代码块，结构必须严格如下：
+{
+  "analysis": {
+    "已知条件": ["条件1","条件2"],
+    "所求问题": "求什么",
+    "思路": ["步骤1","步骤2"]
+  },
+  "diagram": { "w":320,"h":220,"els":[ ... ], "aux":[ ... ] },
+  "steps": [
+    {"title":"加辅助线","desc":"说明文字","diagram":{...}},
+    {"title":"平移","desc":"说明","diagram":{...}},
+    {"title":"切割","desc":"说明","diagram":{...}}
+  ]
+}
+diagram 坐标系：左上为原点，x 向右、y 向下；w/h 自定（约 320×220）。图元 els / aux 数组，每项有 t 类型：
+- poly：多边形，pts=[[x,y]...] 顶点
+- seg / line：线段，x1,y1,x2,y2
+- ray：射线（带箭头），x1,y1→x2,y2
+- circle：圆，cx,cy,r
+- arc：单独圆弧（少用）
+- pt：点，x,y,label（顶点字母）
+- len：长度标注，x1,y1,x2,y2,text（如 "8cm"）
+- angle：角弧+值，cx,cy,r,a0,a1（角度°，0=右，逆时针为负），text（如 "90°"）
+- txt：任意文字，x,y,text
+aux 为辅助线数组（蓝色虚线，写法同 els 的 seg/ray）。
+注意：
+- 坐标要真实能拼出图形，数量少用大坐标让图清晰；只在 diagram 里画图，开头引导语用自然语言。
+- steps 每步给变换后的 diagram：平移→整体偏移坐标；旋转→旋转坐标（以某点为中心）；切割→画切开后两部分。题目用不到的变换就省略该步（如只加辅助线、只切割），steps 留真正用到的 1~2 步即可。
+- 不要加 Markdown 标题或列表符号。`;
+}
+function buildGeoPrompt(text){
+  return `@skill:beishida-math-knowledge\n（几何·画图+变换模式）\n请对下面这道几何题做综合分析，并画出图形（含辅助线）与分步变换图：\n\n${text}\n\n（要求：先用 1~2 句引导语，再输出 \`\`\`json 块，含 analysis / diagram / steps；diagram 用坐标图元描述，辅助线放 aux，变换每步一个 diagram。）`;
+}
+function parseGeo(ans){
+  const m=ans.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if(!m) return {intro:ans, data:null};
+  let data=null; try{ data=JSON.parse(m[1].trim()); }catch(e){ data=null; }
+  return {intro:ans.slice(0,m.index).trim(), data};
+}
+function drawGeometry(spec){
+  if(!spec) return '';
+  const W=spec.w||320, H=spec.h||220;
+  const els=(spec.els||[]).concat((spec.aux||[]).map(a=>Object.assign({dashed:true,_aux:true},a)));
+  const out=[]; const escT=s=>escHtml(s==null?'':String(s));
+  const n=v=>+v||0;
+  els.forEach(e=>{
+    const stroke=e._aux?'#2563eb':'#1f2937';
+    const dash=e.dashed?' stroke-dasharray="6 4"':'';
+    const sw=e._aux?'2':'2.5';
+    switch(e.t){
+      case 'poly':{ const pts=(e.pts||[]).map(p=>n(p[0])+','+n(p[1])).join(' '); out.push('<polygon points="'+pts+'" fill="none" stroke="'+stroke+'" stroke-width="'+sw+'"'+dash+'/>'); break; }
+      case 'seg': case 'line':{ out.push('<line x1="'+n(e.x1)+'" y1="'+n(e.y1)+'" x2="'+n(e.x2)+'" y2="'+n(e.y2)+'" stroke="'+stroke+'" stroke-width="'+sw+'"'+dash+'/>'); break; }
+      case 'ray':{
+        out.push('<line x1="'+n(e.x1)+'" y1="'+n(e.y1)+'" x2="'+n(e.x2)+'" y2="'+n(e.y2)+'" stroke="'+stroke+'" stroke-width="'+sw+'"'+dash+'/>');
+        const ang=Math.atan2(n(e.y2)-n(e.y1),n(e.x2)-n(e.x1)), ah=7, x2=n(e.x2), y2=n(e.y2);
+        out.push('<path d="M '+x2+' '+y2+' l '+ (-Math.cos(ang-0.4)*ah).toFixed(1)+' '+(-Math.sin(ang-0.4)*ah).toFixed(1)+' M '+x2+' '+y2+' l '+ (-Math.cos(ang+0.4)*ah).toFixed(1)+' '+(-Math.sin(ang+0.4)*ah).toFixed(1)+'" stroke="'+stroke+'" stroke-width="'+sw+'" stroke-linecap="round"/>');
+        break;
+      }
+      case 'circle':{ out.push('<circle cx="'+n(e.cx)+'" cy="'+n(e.cy)+'" r="'+n(e.r)+'" fill="none" stroke="'+stroke+'" stroke-width="'+sw+'"'+dash+'/>'); break; }
+      case 'arc':{
+        const cx=n(e.cx),cy=n(e.cy),r=n(e.r),a0=e.a0||0,a1=e.a1||0;
+        const p0=[cx+r*Math.cos(a0*Math.PI/180),cy+r*Math.sin(a0*Math.PI/180)], p1=[cx+r*Math.cos(a1*Math.PI/180),cy+r*Math.sin(a1*Math.PI/180)];
+        const large=Math.abs(a1-a0)>180?1:0, sweep=a1>a0?1:0;
+        out.push('<path d="M '+p0[0].toFixed(1)+' '+p0[1].toFixed(1)+' A '+r+' '+r+' 0 '+large+' '+sweep+' '+p1[0].toFixed(1)+' '+p1[1].toFixed(1)+'" fill="none" stroke="'+stroke+'" stroke-width="'+sw+'"'+dash+'/>');
+        break;
+      }
+      case 'pt':{ out.push('<circle cx="'+n(e.x)+'" cy="'+n(e.y)+'" r="3.5" fill="'+stroke+'"/>'); if(e.label) out.push('<text x="'+(n(e.x))+'" y="'+(n(e.y)-8)+'" class="geo-lbl" fill="#1f2937">'+escT(e.label)+'</text>'); break; }
+      case 'len':{
+        const mx=(n(e.x1)+n(e.x2))/2, my=(n(e.y1)+n(e.y2))/2, dx=n(e.x2)-n(e.x1), dy=n(e.y2)-n(e.y1), L=Math.hypot(dx,dy)||1;
+        out.push('<text x="'+(mx-dy/L*12).toFixed(1)+'" y="'+(my+dx/L*12+4).toFixed(1)+'" class="geo-len" fill="#059669" text-anchor="middle">'+escT(e.text)+'</text>');
+        break;
+      }
+      case 'angle':{
+        const cx=n(e.cx),cy=n(e.cy),r=n(e.r),a0=e.a0||0,a1=e.a1||0;
+        const p0=[cx+r*Math.cos(a0*Math.PI/180),cy+r*Math.sin(a0*Math.PI/180)], p1=[cx+r*Math.cos(a1*Math.PI/180),cy+r*Math.sin(a1*Math.PI/180)];
+        const large=Math.abs(a1-a0)>180?1:0, sweep=a1>a0?1:0;
+        out.push('<path d="M '+p0[0].toFixed(1)+' '+p0[1].toFixed(1)+' A '+r+' '+r+' 0 '+large+' '+sweep+' '+p1[0].toFixed(1)+' '+p1[1].toFixed(1)+'" fill="none" stroke="#ea580c" stroke-width="1.6"/>');
+        const am=(a0+a1)/2*Math.PI/180, tr=r+13;
+        out.push('<text x="'+(cx+tr*Math.cos(am)).toFixed(1)+'" y="'+(cy+tr*Math.sin(am)+4).toFixed(1)+'" class="geo-ang" fill="#ea580c" text-anchor="middle">'+escT(e.text)+'</text>');
+        break;
+      }
+      case 'txt':{ out.push('<text x="'+n(e.x)+'" y="'+n(e.y)+'" class="geo-txt" fill="#1f2937" text-anchor="middle">'+escT(e.text)+'</text>'); break; }
+    }
+  });
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">'+out.join('')+'</svg>';
+}
+function renderGeometry(ans){
+  const {intro,data}=parseGeo(ans);
+  const d=document.createElement('div'); d.className='msg a';
+  if(intro){ const p=document.createElement('div'); p.style.marginBottom='4px'; p.innerHTML=renderMd(intro); d.appendChild(p); }
+  if(data && data.analysis){
+    const a=data.analysis; let h='';
+    if(Array.isArray(a.已知条件)&&a.已知条件.length) h+='<div class="wp-h">📋 已知条件</div><ul>'+a.已知条件.map(x=>'<li>'+escHtml(x)+'</li>').join('')+'</ul>';
+    else if(a.已知条件) h+='<div class="wp-h">📋 已知条件</div><div class="wp-p">'+escHtml(a.已知条件)+'</div>';
+    if(a.所求问题) h+='<div class="wp-h">❓ 所求问题</div><div class="wp-p">'+escHtml(a.所求问题)+'</div>';
+    if(Array.isArray(a.思路)&&a.思路.length) h+='<div class="wp-h">🧭 思路</div><ol>'+a.思路.map(x=>'<li>'+escHtml(x)+'</li>').join('')+'</ol>';
+    else if(a.思路) h+='<div class="wp-h">🧭 思路</div><div class="wp-p">'+escHtml(a.思路)+'</div>';
+    const block=document.createElement('div'); block.className='wp-analysis'; block.innerHTML=h; d.appendChild(block);
+  }
+  if(data && data.diagram){ d.insertAdjacentHTML('beforeend','<div class="geo-card">'+drawGeometry(data.diagram)+'</div>'); }
+  (data&&data.steps||[]).forEach((s,i)=>{
+    const step=document.createElement('div'); step.className='geo-step';
+    step.innerHTML='<div class="geo-step-h">▸ '+(escHtml(s.title)||('步骤'+(i+1)))+'</div>';
+    if(s.desc) step.insertAdjacentHTML('beforeend','<div class="wp-p" style="margin:2px 0">'+escHtml(s.desc)+'</div>');
+    if(s.diagram) step.insertAdjacentHTML('beforeend','<div class="geo-card">'+drawGeometry(s.diagram)+'</div>');
+    d.appendChild(step);
+  });
+  if(!data){ const note=document.createElement('div'); note.className='wp-p'; note.style.color='#f59e0b'; note.textContent='（未解析到几何图数据，已显示文字分析）'; d.appendChild(note); }
+  chatMsgs.appendChild(d); chatMsgs.scrollTop=chatMsgs.scrollHeight;
+  const sp=document.createElement('button'); sp.className='speak'; sp.textContent='🔊 朗读'; sp.onclick=()=>speakText(ans, sp); d.appendChild(sp);
+  return d;
+}
 function escHtml(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function wpSystemPrompt(){
   return `你是一位善于用「线段图」帮小学生拆解应用题的数学辅导老师。
@@ -885,41 +1016,59 @@ function renderWordProblem(ans){
 function drawSegmentDiagram(diagram){
   if(!diagram || !Array.isArray(diagram.rows) || !diagram.rows.length) return '';
   const rows=diagram.rows;
-  const labelW=110, plotW=300, rowH=40, gap=26, top=24, left=12, rightPad=96;
+  const labelW=88, plotW=240, rowH=44, gap=30, top=22, left=10, rightPad=180;
   const totals=rows.map(r=>(r.parts||[]).reduce((s,p)=>s+(+p.value||0),0));
   const globalMax=Math.max.apply(null, totals.concat([1]));
-  const H=top+rows.length*rowH+(rows.length-1)*gap+24;
+  const H=top+rows.length*rowH+(rows.length-1)*gap+30;
   const W=left+labelW+plotW+rightPad;
   const x0=left+labelW;
+  const yOf=(ri)=>top+ri*(rowH+gap)+rowH/2;
   const out=[];
   rows.forEach((r,ri)=>{
     const total=totals[ri]||1;
-    const y=top+ri*(rowH+gap);
-    out.push('<text x="'+left+'" y="'+(y+rowH/2)+'" class="seg-name">'+escHtml(r.name||'')+'</text>');
+    const y=yOf(ri);
+    const rowW=plotW*total/globalMax;
+    const rowRight=x0+rowW;
+    // 左侧名称
+    out.push('<text x="'+left+'" y="'+(y+4)+'" class="seg-name">'+escHtml(r.name||'')+'</text>');
+    // 主线段
+    out.push('<line x1="'+x0+'" y1="'+y+'" x2="'+rowRight+'" y2="'+y+'" stroke="#1f2937" stroke-width="2.5"/>');
+    // 两端端点竖线
+    out.push('<line x1="'+x0+'" y1="'+(y-7)+'" x2="'+x0+'" y2="'+(y+7)+'" stroke="#1f2937" stroke-width="2.5"/>');
+    out.push('<line x1="'+rowRight+'" y1="'+(y-7)+'" x2="'+rowRight+'" y2="'+(y+7)+'" stroke="#1f2937" stroke-width="2.5"/>');
+    // parts 分隔线 + 上方份数标注
     let x=x0;
-    (r.parts||[]).forEach(p=>{
-      const w=Math.max(plotW*(+p.value||0)/globalMax,1);
-      const col=p.color||'#3b82f6';
-      out.push('<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+rowH+'" rx="4" fill="'+col+'" fill-opacity="0.85" stroke="'+col+'"/>');
-      const t=(p.label||'')+((p.value!=null)?' ('+p.value+')':'');
-      out.push('<text x="'+(x+w/2)+'" y="'+(y+rowH/2)+'" class="seg-pl">'+escHtml(t)+'</text>');
+    const fallbackColors=['#2563eb','#ea580c','#db2777','#059669','#7c3aed'];
+    (r.parts||[]).forEach((p,pi)=>{
+      const w=plotW*(+p.value||0)/globalMax;
+      if(w<2){ x+=w; return; }
+      if(pi>0){
+        out.push('<line x1="'+x+'" y1="'+(y-6)+'" x2="'+x+'" y2="'+(y+6)+'" stroke="#9ca3af" stroke-width="1.5"/>');
+      }
+      const color=p.color || fallbackColors[pi % fallbackColors.length];
+      if(p.label){
+        out.push('<text x="'+(x+w/2)+'" y="'+(y-12)+'" class="seg-part-label" fill="'+color+'">'+escHtml(p.label)+'</text>');
+      }
       x+=w;
     });
-    const rowRight=x0+plotW*total/globalMax;
-    out.push('<line x1="'+x0+'" y1="'+(y+rowH+4)+'" x2="'+rowRight+'" y2="'+(y+rowH+4)+'" stroke="#94a3b8" stroke-width="1"/>');
-    out.push('<path d="M '+rowRight+' '+(y+rowH+4)+' l -6 -3 l 0 6 z" fill="#94a3b8"/>');
-    if(r.caption) out.push('<text x="'+x0+'" y="'+(y+rowH+19)+'" class="seg-cap">'+escHtml(r.caption)+'</text>');
+    // 下方 caption
+    if(r.caption){
+      out.push('<text x="'+x0+'" y="'+(y+22)+'" class="seg-cap">'+escHtml(r.caption)+'</text>');
+    }
   });
+  // diffs：用花括号 { 包裹两行右端距离，标注"共/多/差"
   (diagram.diffs||[]).forEach(diff=>{
     const i=diff.rows&&diff.rows[0], j=diff.rows&&diff.rows[1];
     if(i==null||j==null||i<0||j<0||i>=rows.length||j>=rows.length) return;
-    const yi=top+i*(rowH+gap)+rowH+4, yj=top+j*(rowH+gap)+rowH+4;
+    const yi=yOf(i), yj=yOf(j);
     const xi=x0+plotW*(totals[i]||0)/globalMax, xj=x0+plotW*(totals[j]||0)/globalMax;
-    const bx=Math.max(xi,xj)+16;
-    out.push('<line x1="'+Math.max(xi,xj)+'" y1="'+yi+'" x2="'+bx+'" y2="'+yi+'" stroke="#f59e0b" stroke-width="1"/>');
-    out.push('<line x1="'+Math.max(xi,xj)+'" y1="'+yj+'" x2="'+bx+'" y2="'+yj+'" stroke="#f59e0b" stroke-width="1"/>');
-    out.push('<line x1="'+bx+'" y1="'+yi+'" x2="'+bx+'" y2="'+yj+'" stroke="#f59e0b" stroke-width="1.5"/>');
-    out.push('<text x="'+(bx+6)+'" y="'+((yi+yj)/2)+'" class="seg-diff">'+escHtml(diff.label||'差')+'</text>');
+    const maxRight=Math.max(xi,xj);
+    const bx=maxRight+18;
+    const my=(yi+yj)/2;
+    // 花括号 path：右侧开口向左的 { 形
+    const brace='M '+bx+' '+yi+' L '+(bx-5)+' '+yi+' Q '+(bx-12)+' '+yi+' '+(bx-12)+' '+my+' Q '+(bx-12)+' '+yj+' '+(bx-5)+' '+yj+' L '+bx+' '+yj;
+    out.push('<path d="'+brace+'" stroke="#ea580c" stroke-width="1.8" fill="none"/>');
+    out.push('<text x="'+(bx+8)+'" y="'+(my+4)+'" class="seg-diff">'+escHtml(diff.label||'')+'</text>');
   });
   return '<div class="seg-diagram"><svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMinYMin meet">'+out.join('')+'</svg></div>';
 }
@@ -929,12 +1078,20 @@ document.getElementById('chatWP').onclick=function(){
   chatInput.placeholder = wpMode ? '粘贴一道应用题，或点输入法麦克风说出来。例如：甲、乙两队合修一条路，甲队比乙队多修12米，两队共修60米，求各修多少米' : '让它出练习题，或哪里不懂就直接问…（也可用语输入法的语音说）';
   if(wpMode){ addMsg('system','📊 应用题线段图模式已开启：把题目粘到输入框，点发送即可看到「综合分析 + 线段图」。不用先选知识点。'); }
 };
+document.getElementById('chatGeo').onclick=function(){
+  geoMode=!geoMode;
+  wpMode=false; document.getElementById('chatWP').classList.toggle('active', false);
+  this.classList.toggle('active', geoMode);
+  chatInput.placeholder = geoMode ? '粘贴/说出一道几何题，例如：把一个长8cm、宽5cm的长方形向右平移3格，面积变了吗？ 或：平行四边形底10高6，求面积' : '让它出练习题，或哪里不懂就直接问…（也可用语输入法的语音说）';
+  if(geoMode){ addMsg('system','📐 几何模式已开启：把题粘到输入框，点发送即可看到「综合分析 + 画图（含辅助线）+ 分步变换（平移/旋转/切割）」。可语音输入，不用先选知识点。'); }
+};
 
 async function sendChat(presetText, asNormal){
   const text = (presetText!=null) ? presetText : chatInput.value.trim();
   if(!text) return;
   const useWP = wpMode && !asNormal;
-  if(!selected && !useWP){ addMsg('system','请先点选一个知识点，我才能基于它出题/讲解。'); return; }
+  const useGeo = geoMode && !asNormal;
+  if(!selected && !useWP && !useGeo){ addMsg('system','请先点选一个知识点，我才能基于它出题/讲解。'); return; }
   chatInput.value='';
   addMsg('user', text);
   chatHistory.push({role:'user', content:text});
@@ -942,9 +1099,11 @@ async function sendChat(presetText, asNormal){
   const endpoint=localStorage.getItem('bsd_api_endpoint');
   const key=localStorage.getItem('bsd_api_key');
   if(!endpoint || !key){
-    const prompt = useWP ? buildWPPrompt(text) : buildPromptForCopy(text);
+    const prompt = useGeo ? buildGeoPrompt(text) : (useWP ? buildWPPrompt(text) : buildPromptForCopy(text));
     copyText(prompt).then(ok=>{
-      const lead = useWP
+      const lead = useGeo
+        ? '（未配置 API Key）已把「几何画图+变换」分析提示词复制到剪贴板 ✅\n打开 WorkBuddy 粘贴并发送即可。'
+        : useWP
         ? '（未配置 API Key）已把「应用题线段图」分析提示词复制到剪贴板 ✅\n打开 WorkBuddy 粘贴并发送即可。'
         : '（未配置 API Key）已把包含上下文的提示词复制到剪贴板 ✅\n打开 WorkBuddy 粘贴并发送，技能就会基于【'+byId[selected].name+'】给你出练习题 / 讲解。继续追问也直接在那边说就行。';
       if(ok){ addMsg('assistant', lead); }
@@ -956,18 +1115,18 @@ async function sendChat(presetText, asNormal){
   const thinking=addMsg('assistant','思考中…');
   try{
     const model=localStorage.getItem('bsd_api_model')||'gpt-4o-mini';
-    const sys = useWP ? wpSystemPrompt() : systemPrompt(selected);
+    const sys = useGeo ? geoSystemPrompt() : (useWP ? wpSystemPrompt() : systemPrompt(selected));
     const messages=[{role:'system',content:sys}, ...chatHistory.map(m=>({role:m.role,content:m.content}))];
-    const resp=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,messages:messages,temperature:useWP?0.3:0.7})});
+    const resp=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,messages:messages,temperature:(useWP||useGeo)?0.3:0.7})});
     if(!resp.ok){ const t=await resp.text(); throw new Error('API '+resp.status+': '+t.slice(0,200)); }
     const data=await resp.json();
     const ans=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'（无返回内容）';
     thinking.remove();
-    if(useWP) renderWordProblem(ans); else addMsg('assistant', ans);
+    if(useWP) renderWordProblem(ans); else if(useGeo) renderGeometry(ans); else addMsg('assistant', ans);
     chatHistory.push({role:'assistant', content:ans});
   }catch(err){
     thinking.remove();
-    const prompt = useWP ? buildWPPrompt(text) : buildPromptForCopy(text);
+    const prompt = useGeo ? buildGeoPrompt(text) : (useWP ? buildWPPrompt(text) : buildPromptForCopy(text));
     addMsg('assistant','⚠️ 调用失败：'+err.message+'\n已为你生成提示词，点 📋 复制去 WorkBuddy 问即可：\n\n'+prompt);
   }finally{
     chatBusy=false; document.getElementById('chatSend').disabled=false;
