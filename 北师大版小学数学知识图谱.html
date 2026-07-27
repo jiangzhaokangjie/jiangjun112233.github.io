@@ -1220,6 +1220,35 @@ function speakText(text, btn){
   speaking=true; if(btn) btn.textContent='⏹ 停止';
   try{ window.speechSynthesis.speak(u); }catch(e){ speaking=false; if(btn) btn.textContent='🔊 朗读'; addMsg('system','🔊 朗读失败：'+e.message); }
 }
+/* ===================== 诊断浮层（?debug=1 时显示，便于手机 Edge 抓现场） ===================== */
+(function(){
+  if(!/(\?|&)debug=1/.test(location.search)) return;
+  const box=document.createElement('div');
+  box.style.cssText='position:fixed;left:0;top:0;right:0;max-height:60%;overflow:auto;background:rgba(0,0,0,.92);color:#0f0;font:12px/1.5 monospace;z-index:99999;padding:8px;border-bottom:2px solid #0f0;white-space:pre-wrap;word-break:break-word';
+  document.body.appendChild(box);
+  function log(){ box.textContent += Array.prototype.join.call(arguments,' ')+'\n'; }
+  window.addEventListener('error',function(e){ log('JS错误:', e.message, (e.filename||'')+':'+(e.lineno||'')); });
+  function r2(r){ return {w:Math.round(r.width),h:Math.round(r.height),x:Math.round(r.x),y:Math.round(r.y)}; }
+  setTimeout(function(){
+    try{
+      const svg=document.getElementById('graph');
+      log('SVG存在:', !!svg, ' rect:', svg&&JSON.stringify(r2(svg.getBoundingClientRect())));
+      const nodes=svg? svg.querySelectorAll('g.node'):[];
+      const circles=svg? svg.querySelectorAll('g.node circle'):[];
+      log('g.node数:', nodes.length, ' circle数:', circles.length);
+      log('W/H:', (typeof W!=='undefined'?W:'?'), (typeof H!=='undefined'?H:'?'));
+      for(let i=0;i<Math.min(3,nodes.length);i++){
+        const g=nodes[i], c=g.querySelector('circle'), t=g.querySelector('text');
+        if(c){ const cr=c.getBoundingClientRect();
+          log('节点'+i+': cx='+c.getAttribute('cx')+' cy='+c.getAttribute('cy')+' r='+c.getAttribute('r')+' fill='+c.getAttribute('fill')+' cxNaN='+isNaN(parseFloat(c.getAttribute('cx'))));
+          log('   rect='+JSON.stringify(r2(cr))+' comFill='+getComputedStyle(c).fill+' disp='+getComputedStyle(c).display+' vis='+getComputedStyle(c).visibility+' op='+getComputedStyle(c).opacity);
+        }
+        if(t){ log('   text="'+t.textContent+'"'); }
+        log('   g.disp='+getComputedStyle(g).display+' g.vis='+getComputedStyle(g).visibility);
+      }
+    }catch(e){ log('诊断异常:', e.message); }
+  }, 2500);
+})();
 </script>
 <script>
 if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
