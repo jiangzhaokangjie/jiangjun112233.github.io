@@ -1079,15 +1079,20 @@ function wpConfetti(){
   }
 }
 function wpPraiseVoice(){
-  if(!('speechSynthesis' in window)) return;
   const phrase = wpPraiseToggle ? '棒极了' : '你真棒';
   wpPraiseToggle = !wpPraiseToggle;
-  const u=new SpeechSynthesisUtterance(phrase);
-  u.lang='zh-CN';
-  const vs=window.speechSynthesis.getVoices(); if(vs.length) cachedVoices=vs;
-  const zh=cachedVoices.find(v=>/zh|cmn|Chinese/i.test(v.lang+' '+v.name));
-  if(zh) u.voice=zh;
-  try{ window.speechSynthesis.speak(u); }catch(e){}
+  if(window._wpAudio){ try{window._wpAudio.pause();window._wpAudio.src='';}catch(e){} }
+  const a=new Audio(); window._wpAudio=a;
+  a.src='https://fanyi.baidu.com/gettts?lan=zh&text='+encodeURIComponent(phrase)+'&spd=4&source=web';
+  a.onerror=()=>{
+    if(!('speechSynthesis' in window)) return;
+    const u=new SpeechSynthesisUtterance(phrase); u.lang='zh-CN';
+    const vs=window.speechSynthesis.getVoices(); if(vs.length) cachedVoices=vs;
+    const zh=cachedVoices.find(v=>/zh|cmn|Chinese/i.test(v.lang+' '+v.name));
+    if(zh) u.voice=zh;
+    try{ window.speechSynthesis.speak(u); }catch(e){}
+  };
+  a.play().catch(()=>a.onerror&&a.onerror());
 }
 let wpPraiseToggle=false;
 function renderWordProblem(ans){
@@ -1504,26 +1509,61 @@ document.getElementById('chatSend').onclick=()=>sendChat();
 chatInput.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendChat(); } });
 
 /* ===================== 语音：朗读（🔊） ===================== */
-let speaking=false, cachedVoices=[];
+/* TTS：默认走百度 fanyi.baidu.com/gettts 公开端点（无需鉴权）；失败回退浏览器 SpeechSynthesis */
+let speaking=false, cachedVoices=[], bdCurrent=null;
 function loadVoices(){ if('speechSynthesis' in window) cachedVoices=window.speechSynthesis.getVoices(); }
 if('speechSynthesis' in window){ loadVoices(); window.speechSynthesis.onvoiceschanged=loadVoices; }
-
-function speakText(text, btn){
-  if(!('speechSynthesis' in window)){ addMsg('system','当前浏览器不支持语音朗读（请换 Chrome / Edge 打开）。'); return; }
-  const vs=window.speechSynthesis.getVoices();
-  if(vs.length) cachedVoices=vs;
-  if(cachedVoices.length===0){
-    addMsg('system','🔊 朗读失败：当前设备/浏览器没有可用的语音（多半是没装中文语音包）。\n安卓：设置 → 系统 → 语言与输入法 → 文字转语音(TTS) → 点引擎右侧齿轮 → 安装语音数据 → 选“中文(普通话)”。装好后用 Chrome 重新打开本页即可。');
+function bdChunk(t){
+  const seps='。！？；\n，'; const out=[]; let buf='';
+  for(const ch of String(t||'')){
+    buf+=ch;
+    if(seps.indexOf(ch)>=0 || buf.length>=160){
+      const x=buf.trim(); if(x) out.push(x); buf='';
+    }
   }
-  if(speaking){ window.speechSynthesis.cancel(); speaking=false; document.querySelectorAll('.speak').forEach(b=>b.textContent='🔊 朗读'); return; }
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang='zh-CN';
+  if(buf.trim()) out.push(buf.trim());
+  return out.length?out:[String(t||'')];
+}
+function bdStopAll(){ try{if(bdCurrent) bdCurrent.pause();}catch(e){} bdCurrent=null; }
+function bdPlaySeq(text, btn){
+  bdStopAll();
+  const cs=bdChunk(text); let i=0;
+  function step(){
+    if(!speaking){ if(btn) btn.textContent='🔊 朗读'; return; }
+    if(i>=cs.length){ speaking=false; if(btn) btn.textContent='🔊 朗读'; return; }
+    if(btn) btn.textContent='⏹ 停止（'+(i+1)+'/'+cs.length+'）';
+    const a=new Audio(); bdCurrent=a;
+    a.src='https://fanyi.baidu.com/gettts?lan=zh&text='+encodeURIComponent(cs[i])+'&spd=4&source=web';
+    a.onended=()=>{ i++; step(); };
+    a.onerror=()=>{ bdStopAll(); fallbackSpeak(text, btn); };
+    a.play().catch(()=>{ bdStopAll(); fallbackSpeak(text, btn); });
+  }
+  step();
+}
+function fallbackSpeak(text, btn){
+  if(!('speechSynthesis' in window)){
+    addMsg('system','百度语音 + 浏览器语音均不可用，请检查网络后刷新重试。');
+    speaking=false; if(btn) btn.textContent='🔊 朗读'; return;
+  }
+  const u=new SpeechSynthesisUtterance(text); u.lang='zh-CN';
+  const vs=window.speechSynthesis.getVoices(); if(vs.length) cachedVoices=vs;
   const zh=cachedVoices.find(v=>/zh|cmn|Chinese/i.test(v.lang+' '+v.name));
   if(zh) u.voice=zh;
   u.onend=()=>{ speaking=false; if(btn) btn.textContent='🔊 朗读'; };
-  u.onerror=(e)=>{ speaking=false; if(btn) btn.textContent='🔊 朗读'; addMsg('system','🔊 朗读出错：'+(e.error||'未知')+'（若提示无语音模型，请按上一条安装中文语音包）。'); };
-  speaking=true; if(btn) btn.textContent='⏹ 停止';
-  try{ window.speechSynthesis.speak(u); }catch(e){ speaking=false; if(btn) btn.textContent='🔊 朗读'; addMsg('system','🔊 朗读失败：'+e.message); }
+  u.onerror=()=>{ speaking=false; if(btn) btn.textContent='🔊 朗读'; };
+  speaking=true; if(btn) btn.textContent='⏹ 停止（兜底）';
+  try{ window.speechSynthesis.speak(u); }catch(e){ speaking=false; if(btn) btn.textContent='🔊 朗读'; }
+}
+function speakText(text, btn){
+  if(speaking){
+    bdStopAll();
+    window.speechSynthesis.cancel();
+    speaking=false;
+    document.querySelectorAll('.speak').forEach(b=>b.textContent='🔊 朗读');
+    if(btn) btn.textContent='🔊 朗读';
+    return;
+  }
+  speaking=true; bdPlaySeq(text, btn);
 }
 /* ===================== 诊断浮层（?debug=1 时显示，便于手机 Edge 抓现场） ===================== */
 (function(){
