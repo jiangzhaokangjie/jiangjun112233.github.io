@@ -158,79 +158,38 @@
   .praise-btn:hover{filter:brightness(1.08)}
   .confetti{position:fixed;top:0;width:9px;height:14px;z-index:9999;pointer-events:none;border-radius:2px;transition:transform 1.1s cubic-bezier(.2,.7,.3,1),opacity 1.1s}
 
-  /* ===== math-teacher 交互式可视化样式 ===== */
-  .mt-host{margin:6px 0 4px;background:#ffffff;border:1px solid #d1d5db;border-radius:12px;padding:10px 8px 8px;position:relative;overflow:hidden}
-  .mt-svg{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-select:none}
-  .mt-svg .mt-axis{stroke:#1f2937;stroke-width:3.4;stroke-linecap:round;transition:stroke .3s}
-  .mt-svg .mt-axis:hover{stroke:#2563eb}
-  .mt-svg .mt-tick{stroke:#9ca3af;stroke-width:1.4;stroke-linecap:round}
-  .mt-svg .mt-brace{stroke:#ea580c;stroke-width:1.8;fill:none;stroke-linejoin:round;transition:stroke-width .25s,stroke .25s;cursor:pointer}
-  .mt-svg .mt-brace:hover{stroke-width:3;stroke:#f59e0b}
-  .mt-svg .mt-brace-label{fill:#ea580c;font-size:18px;font-weight:700;dominant-baseline:middle;pointer-events:none}
-  .mt-svg .mt-shade{transition:opacity .3s}
-  .mt-svg .mt-arrow{stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset .6s ease}
-  .mt-svg .mt-arrow-head{transition:opacity .3s}
-  .mt-svg .mt-pt-label{fill:#1f2937;font-size:13px;font-weight:600;dominant-baseline:top;text-anchor:middle;pointer-events:none}
-  .mt-svg .mt-axis-label{fill:#6b7280;font-size:15px;dominant-baseline:top;text-anchor:middle;pointer-events:none}
-  .mt-svg .mt-rect{stroke:#1f2937;stroke-width:2.5;fill:none;transition:fill .3s}
-  .mt-svg .mt-seg{stroke:#1f2937;stroke-width:2.5;stroke-linecap:round}
-  .mt-svg .mt-seg-label{font-size:18px;font-weight:700;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
-
-  /* 可拖拽手柄 */
-  .mt-handle{fill:#2563eb;stroke:#fff;stroke-width:2.5;cursor:grab;transition:r .2s,fill .2s;r:9}
-  .mt-handle:hover{r:11;fill:#3b82f6}
-  .mt-handle.dragging{cursor:grabbing;r:12;fill:#1d4ed8}
-  .mt-handle.correct{fill:#22c55e;animation:mt-pop .4s ease}
-  @keyframes mt-pop{0%{r:9}50%{r:16}100%{r:11}}
-
-  /* 拖拽浮窗 */
-  .mt-tooltip{position:absolute;background:#1f2937;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;pointer-events:none;white-space:nowrap;z-index:10;transform:translate(-50%,-130%);transition:opacity .15s;opacity:0}
-  .mt-tooltip.show{opacity:1}
-  .mt-tooltip::after{content:'';position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1f2937}
-
-  /* 工具栏 */
-  .mt-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
-  .mt-toolbar button{background:#0f172a;border:1px solid #334155;color:#cbd5e1;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:3px}
-  .mt-toolbar button:hover{border-color:#64748b;background:#1e293b}
-  .mt-toolbar button.active{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
-  .mt-toolbar .mt-step-info{font-size:11px;color:#94a3b8;margin-left:4px}
-  .mt-toolbar .mt-badge{margin-left:auto;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-flex;align-items:center;gap:3px}
-
-  /* 步骤进度条 */
-  .mt-step-bar{display:flex;align-items:center;gap:4px;margin-top:4px}
-  .mt-step-bar .mt-dot{width:24px;height:6px;border-radius:3px;background:#e5e7eb;transition:background .3s;cursor:pointer}
-  .mt-step-bar .mt-dot.done{background:#22c55e}
-  .mt-step-bar .mt-dot.cur{background:#2563eb}
-  .mt-step-bar .mt-dot:hover{opacity:.8}
-
-  /* SVG 元素过渡动画 */
-  .mt-animate{transition:x .5s ease,cx .5s ease,y1 .5s ease,y2 .5s ease,width .5s ease,opacity .4s ease,stroke-dashoffset .6s ease}
-  .mt-fade-in{animation:mt-fadeIn .4s ease}
-  @keyframes mt-fadeIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
-
-  /* timeline 交互样式 */
-  .mt-svg .mt-tl-node{cursor:pointer;transition:r .2s,fill .2s}
-  .mt-svg .mt-tl-node:hover{r:8}
-  .mt-svg .mt-tl-val{fill:#0f172a;font-size:20px;font-weight:800;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
-  .mt-svg .mt-tl-delta{fill:#ea580c;font-size:17px;font-weight:800;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
-  .mt-svg .mt-tl-name{fill:#1f2937;font-size:13px;font-weight:600;text-anchor:middle;pointer-events:none}
-  .mt-svg .mt-tl-delta-arrow{stroke:#ea580c;stroke-width:2.2;transition:stroke-dashoffset .6s ease}
-
-  /* trip 交互样式 */
-  .mt-svg .mt-trip-mover{cursor:pointer;transition:opacity .3s}
-  .mt-svg .mt-trip-mover:hover{filter:brightness(1.15)}
-  .mt-svg .mt-trip-label{font-size:18px;font-weight:700;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
-
-  /* fraction 交互样式 */
-  .mt-svg .mt-frac-cell{cursor:pointer;transition:fill .3s,transform .3s;transform-origin:center}
-  .mt-svg .mt-frac-cell:hover{stroke:#2563eb;stroke-width:2}
-  .mt-svg .mt-frac-cell.shaded{fill:#2563eb}
-  .mt-svg .mt-frac-cell.unshaded{fill:#e5e7eb}
-  .mt-svg .mt-frac-rate{fill:#ea580c;font-size:18px;font-weight:700;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+  /* ===== math-teacher 风格交互式 Playground ===== */
+  .mt-playground{margin:6px 0 4px;background:linear-gradient(135deg,#667eea15 0%,#764ba215 100%);border:1px solid #334155;border-radius:15px;padding:10px;backdrop-filter:blur(6px)}
+  .mt-score-bar{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .mt-score-bar .mt-score{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:13px;font-weight:700;padding:3px 12px;border-radius:12px;display:inline-flex;align-items:center;gap:4px}
+  .mt-score-bar .mt-streak{font-size:11px;color:#fbbf24;font-weight:700}
+  .mt-score-bar .mt-level{font-size:11px;color:#94a3b8}
+  .mt-progress-track{flex:1;min-width:80px;height:8px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden}
+  .mt-progress-fill{height:100%;background:linear-gradient(90deg,#4CAF50,#8BC34A);border-radius:4px;transition:width .4s ease;width:0%}
+  .mt-canvas-wrap{background:#fff;border-radius:10px;padding:6px;overflow:hidden;position:relative}
+  .mt-canvas-wrap canvas{display:block;width:100%;height:auto;cursor:default;touch-action:none}
+  .mt-canvas-wrap canvas.mt-draggable{cursor:grab}
+  .mt-canvas-wrap canvas.mt-dragging{cursor:grabbing}
+  .mt-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .mt-controls button{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:transform .15s,box-shadow .15s}
+  .mt-controls button:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(102,126,234,.35)}
+  .mt-controls button:active{transform:translateY(0)}
+  .mt-controls button.mt-secondary{background:#1e293b;border:1px solid #334155}
+  .mt-controls button.mt-secondary:hover{box-shadow:0 4px 12px rgba(0,0,0,.3)}
+  .mt-controls input[type=range]{flex:1;min-width:100px;height:6px;border-radius:4px;background:#334155;outline:none;accent-color:#667eea}
+  .mt-controls .mt-val{color:#667eea;font-weight:700;min-width:40px;text-align:right;font-size:12px}
+  .mt-feedback{margin-top:6px;font-size:12px;color:#94a3b8;background:rgba(15,23,42,.6);border-radius:8px;padding:5px 10px;min-height:22px}
+  .mt-feedback .mt-correct{color:#4CAF50;font-weight:700}
+  .mt-feedback .mt-hint{color:#fbbf24}
+  .mt-score-popup{position:absolute;font-size:16px;font-weight:800;color:#4CAF50;pointer-events:none;z-index:20;animation:mt-floatUp 1s ease forwards}
+  @keyframes mt-floatUp{from{transform:translateY(0) scale(1);opacity:1}to{transform:translateY(-60px) scale(1.5);opacity:0}}
+  .mt-step-dots{display:flex;gap:4px;align-items:center}
+  .mt-step-dots .mt-dot{width:20px;height:6px;border-radius:3px;background:#334155;transition:background .3s;cursor:pointer}
+  .mt-step-dots .mt-dot.done{background:#4CAF50}
+  .mt-step-dots .mt-dot.cur{background:#667eea}
 
   .seg-cap{fill:#6b7280;font-size:15px;dominant-baseline:hanging}
   .seg-diff{fill:#ea580c;font-size:18px;font-weight:700;dominant-baseline:middle}
-  /* 连续数轴（timeline）样式 */
   .seg-val{fill:#0f172a;font-size:20px;font-weight:800;text-anchor:middle;dominant-baseline:middle}
   .seg-delta{fill:#ea580c;font-size:17px;font-weight:800;text-anchor:middle;dominant-baseline:middle}
   .tl-name{fill:#1f2937;font-size:13px;font-weight:600;text-anchor:middle;dominant-baseline:hanging}
@@ -1177,332 +1136,534 @@ function wpPraiseVoice(){
 }
 let wpPraiseToggle=false;
 
-/* ===== math-teacher 风格交互式可视化引擎 ===== */
-/* SVG 元素创建辅助 */
-function mtEl(tag, attrs, text){
-  const el=document.createElementNS('http://www.w3.org/2000/svg',tag);
-  if(attrs) for(const k in attrs) el.setAttribute(k, attrs[k]);
-  if(text!=null) el.textContent=text;
-  return el;
+/* ===== math-teacher 风格 Canvas 交互式引擎 ===== */
+
+/* --- 积分系统 --- */
+const mtScore={total:0,level:1,streak:0,explored:0};
+function mtLevelInfo(pts){
+  let lv=1,need=100,total=0;
+  while(pts>=total+need){total+=need;lv++;need=100*lv;}
+  return{level:lv,cur:pts-total,next:need,progress:(pts-total)/need};
 }
-/* 通用：创建一个 SVG 容器 + host div */
-function mtCreateSVG(W,H){
-  const host=document.createElement('div'); host.className='mt-host';
-  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-  svg.setAttribute('viewBox','0 0 '+W+' '+H);
-  svg.setAttribute('width','100%');
-  svg.setAttribute('preserveAspectRatio','xMinYMin meet');
-  svg.classList.add('mt-svg');
-  host.appendChild(svg);
-  return {host, svg};
-}
-/* 把鼠标/触摸事件坐标转为 SVG viewBox 坐标 */
-function mtSvgPoint(svg,e){
-  const pt=svg.createSVGPoint();
-  pt.x=e.clientX; pt.y=e.clientY;
-  return pt.matrixTransform(svg.getScreenCTM().inverse());
-}
-/* 通用：拖拽手柄 — 在 SVG 上可拖动的圆点，拖动时回调并显示 tooltip */
-function mtAddHandle(svg, host, cx, cy, label, onDrag){
-  const handle=mtEl('circle',{cx,cy,r:9},null);
-  handle.classList.add('mt-handle');
-  const tip=document.createElement('div'); tip.className='mt-tooltip';
-  host.appendChild(tip);
-  let dragging=false;
-  const start=(e)=>{
-    dragging=true; handle.classList.add('dragging');
-    e.preventDefault();
-  };
-  const move=(e)=>{
-    if(!dragging) return;
-    const pt=mtSvgPoint(svg,e);
-    const W=svg.viewBox.baseVal.width;
-    const x=Math.max(0,Math.min(W,pt.x));
-    handle.setAttribute('cx',x);
-    // tooltip 位置（基于 host 内相对像素坐标）
-    const rect=svg.getBoundingClientRect();
-    const ratio=x/W;
-    tip.style.left=(ratio*rect.width)+'px';
-    tip.style.top=(pt.y/ (svg.viewBox.baseVal.height||1) * rect.height)+'px';
-    tip.classList.add('show');
-    const progress=W>0?x/W:0;
-    tip.textContent=label+': '+(onDrag?onDrag(progress):Math.round(progress*100)+'%');
-  };
-  const end=()=>{
-    if(!dragging) return;
-    dragging=false; handle.classList.remove('dragging');
-    tip.classList.remove('show');
-  };
-  handle.addEventListener('pointerdown',start);
-  svg.addEventListener('pointermove',move);
-  svg.addEventListener('pointerup',end);
-  svg.addEventListener('pointercancel',end);
-  svg.addEventListener('pointerleave',end);
-  svg.appendChild(handle);
-  return handle;
+function mtAddScore(playground,pts,reason){
+  mtScore.total+=pts; mtScore.streak++;
+  const info=mtLevelInfo(mtScore.total);
+  mtScore.level=info.level;
+  // 更新积分栏
+  const scoreEl=playground.querySelector('.mt-score');
+  if(scoreEl) scoreEl.textContent='⭐ '+mtScore.total;
+  const levelEl=playground.querySelector('.mt-level');
+  if(levelEl) levelEl.textContent='Lv.'+info.level;
+  const streakEl=playground.querySelector('.mt-streak');
+  if(streakEl) streakEl.textContent=mtScore.streak>=2?'🔥'+mtScore.streak+'连击':'';
+  const fill=playground.querySelector('.mt-progress-fill');
+  if(fill) fill.style.width=Math.round(info.progress*100)+'%';
+  // 得分弹出动画
+  if(pts>0){
+    const pop=document.createElement('div'); pop.className='mt-score-popup'; pop.textContent='+'+pts;
+    pop.style.left='50%'; pop.style.top='10px'; pop.style.transform='translateX(-50%)';
+    playground.querySelector('.mt-canvas-wrap').appendChild(pop);
+    setTimeout(()=>pop.remove(),1000);
+  }
 }
 
-/* ===== 交互式 axis 图（万能单轴图）===== */
-function buildAxisInteractive(dia){
+/* --- 动画系统 --- */
+function mtAnimate(duration,onFrame,onDone){
+  const start=performance.now();
+  function loop(now){
+    const t=Math.min(1,(now-start)/duration);
+    const eased=1-Math.pow(1-t,3); // ease-out cubic
+    onFrame(eased);
+    if(t<1) requestAnimationFrame(loop);
+    else if(onDone) onDone();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* --- Canvas 创建 --- */
+function mtCanvas(w,h){
+  const dpr=window.devicePixelRatio||1;
+  const cv=document.createElement('canvas');
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+  cv.style.width='100%'; cv.style.height='auto'; cv.style.display='block';
+  cv.style.aspectRatio=w+' / '+h;
+  const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
+  return{cv,ctx,w,h};
+}
+/* Canvas 文字绘制辅助 */
+function mtText(ctx,txt,x,y,opts){
+  if(txt==null||txt==='')return;
+  ctx.save();
+  ctx.fillStyle=opts.color||'#1f2937';
+  ctx.font=(opts.weight?opts.weight+' ':'')+(opts.size||14)+'px "Microsoft YaHei",sans-serif';
+  ctx.textAlign=opts.align||'left';
+  ctx.textBaseline=opts.baseline||'alphabetic';
+  ctx.fillText(String(txt),x,y);
+  ctx.restore();
+}
+/* Canvas 花括号 */
+function mtBrace(ctx,x1,x2,y,side,label,color){
+  const dip=side==='top'?-6:6;
+  const by=y+(side==='top'?-14:14);
+  ctx.save();
+  ctx.strokeStyle=color||'#ea580c'; ctx.lineWidth=1.8; ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(x1,y); ctx.lineTo(x1,by);
+  ctx.quadraticCurveTo((x1+x2)/2,by+dip,x2,by);
+  ctx.lineTo(x2,y);
+  ctx.stroke();
+  ctx.restore();
+  if(label) mtText(ctx,label,(x1+x2)/2,by+(side==='top'?dip-5:-dip+13),{size:15,weight:700,color:color||'#ea580c',align:'center',baseline:'middle'});
+}
+/* Canvas 箭头 */
+function mtArrow(ctx,x1,y1,x2,y2,color,width){
+  ctx.save();
+  ctx.strokeStyle=color||'#2563eb'; ctx.lineWidth=width||3; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const ang=Math.atan2(y2-y1,x2-x1), ah=7;
+  ctx.fillStyle=color||'#2563eb';
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-Math.cos(ang-0.4)*ah,y2-Math.sin(ang-0.4)*ah);
+  ctx.lineTo(x2-Math.cos(ang+0.4)*ah,y2-Math.sin(ang+0.4)*ah);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+/* --- axis 万能单轴图（Canvas + 拖拽 + 动画）--- */
+function buildAxisCanvas(dia,playground){
   const ax=dia.axis||{};
   const value=ax.value!=null?+ax.value:1;
-  const x0=30, plotW=396, W=x0+plotW+30;
-  const axisY=92;
-  const ticks=ax.ticks!=null?+ax.ticks:0;
   const points=Array.isArray(dia.points)?dia.points:[];
   const braces=Array.isArray(dia.braces)?dia.braces:[];
   const shades=Array.isArray(dia.shade)?dia.shade:[];
   const arrows=Array.isArray(dia.arrows)?dia.arrows:[];
-  const pos=at=>{ let f=+at; if(value>0&&f>1)f=f/value; if(f<0)f=0; if(f>1)f=1; return x0+plotW*f; };
+  const ticks=ax.ticks!=null?+ax.ticks:0;
+
+  const x0=30, plotW=396, W=x0+plotW+30;
+  const axisY=92;
+  const pos=at=>{let f=+at; if(value>0&&f>1)f=f/value; if(f<0)f=0; if(f>1)f=1; return x0+plotW*f;};
 
   let maxB=0,maxT=0;
-  braces.forEach(b=>{ const lv=+b.level||0; if((b.side||'bottom')==='top')maxT=Math.max(maxT,lv); else maxB=Math.max(maxB,lv); });
-  const STEP=22, BASE=14;
+  braces.forEach(b=>{const lv=+b.level||0; if((b.side||'bottom')==='top')maxT=Math.max(maxT,lv); else maxB=Math.max(maxB,lv);});
+  const STEP=22,BASE=14;
   const bottomGap=maxB>0?(BASE+maxB*STEP+34):44;
   const H=axisY+(dia.caption?bottomGap+24:bottomGap+6);
-  const {host,svg}=mtCreateSVG(W,H);
 
-  // 着色区
-  shades.forEach(s=>{
-    const x1=pos(s.from),x2=pos(s.to);
-    const r=mtEl('rect',{x:Math.min(x1,x2),y:axisY-13,width:Math.abs(x2-x1),height:26,fill:s.color||'#2563eb','fill-opacity':0.3},null);
-    r.classList.add('mt-shade'); svg.appendChild(r);
+  let animProgress=0; // 0→1 入场动画
+  let curK=1; // 滑块缩放
+  const handles=points.map(p=>({at:p.at,label:p.label||'点',x:pos(p.at),dragging:false}));
+
+  function draw(){
+    const {cv,ctx}=mtCanvas(W,H);
+    const k=curK;
+    const val=value*k;
+    const posK=at=>{let f=+at; if(value>0&&f>1)f=f/value; if(f<0)f=0; if(f>1)f=1; return x0+plotW*f;};
+    // 着色
+    shades.forEach(s=>{
+      const x1=posK(s.from),x2=posK(s.to);
+      ctx.fillStyle=s.color||'#2563eb'; ctx.globalAlpha=0.25;
+      ctx.fillRect(Math.min(x1,x2),axisY-13,Math.abs(x2-x1),26); ctx.globalAlpha=1;
+    });
+    // 横轴
+    ctx.strokeStyle='#1f2937'; ctx.lineWidth=3.4; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(x0,axisY); ctx.lineTo(x0+plotW*animProgress,axisY); ctx.stroke();
+    if(animProgress>0.95){
+      ctx.lineWidth=2.6;
+      ctx.beginPath();ctx.moveTo(x0,axisY-7);ctx.lineTo(x0,axisY+7);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x0+plotW,axisY-7);ctx.lineTo(x0+plotW,axisY+7);ctx.stroke();
+    }
+    // 起止标签
+    if(ax.startLabel&&animProgress>0.5) mtText(ctx,ax.startLabel,x0,axisY+24,{size:13,weight:600,color:'#1f2937',align:'center',baseline:'top'});
+    if(ax.endLabel&&animProgress>0.9) mtText(ctx,ax.endLabel,x0+plotW,axisY+24,{size:13,weight:600,color:'#1f2937',align:'center',baseline:'top'});
+    // 刻度
+    if(ticks>0&&animProgress>0.7){ctx.strokeStyle='#9ca3af';ctx.lineWidth=1.4;for(let i=0;i<=ticks;i++){const tx=x0+plotW*i/ticks;ctx.beginPath();ctx.moveTo(tx,axisY-5);ctx.lineTo(tx,axisY+5);ctx.stroke();}}
+    // 关键点 + 手柄
+    if(animProgress>0.8){
+      handles.forEach(h=>{
+        const x=posK(h.at);
+        ctx.strokeStyle='#1f2937';ctx.lineWidth=1.8;
+        ctx.beginPath();ctx.moveTo(x,axisY-7);ctx.lineTo(x,axisY+7);ctx.stroke();
+        // 手柄圆点
+        ctx.fillStyle=h.dragging?'#1d4ed8':'#667eea';
+        ctx.strokeStyle='#fff';ctx.lineWidth=2.5;
+        ctx.beginPath();ctx.arc(x,axisY,h.dragging?12:9,0,2*Math.PI);ctx.fill();ctx.stroke();
+        if(h.label) mtText(ctx,h.label,x,axisY+24,{size:13,weight:600,color:'#1f2937',align:'center',baseline:'top'});
+      });
+    }
+    // 箭头
+    if(animProgress>0.6){
+      arrows.forEach((a,idx)=>{
+        const prog=Math.min(1,Math.max(0,(animProgress-0.6)*2.5-idx*0.2));
+        if(prog<=0)return;
+        const x1=posK(a.from),x2=posK(a.from)+(posK(a.to)-posK(a.from))*prog;
+        const ay=axisY-30,col=a.color||'#2563eb';
+        mtArrow(ctx,x1,ay,x2,ay,col,3);
+        if(prog>0.9&&a.label) mtText(ctx,a.label,(posK(a.from)+posK(a.to))/2,ay-8,{size:15,weight:700,color:col,align:'center',baseline:'middle'});
+      });
+    }
+    // 大括号
+    if(animProgress>0.85){
+      braces.forEach(b=>{
+        const x1=posK(b.from),x2=posK(b.to),top=(b.side||'bottom')==='top',lv=+b.level||0,off=BASE+lv*STEP;
+        mtBrace(ctx,x1,x2,axisY+(top?-off:off),top,b.label,b.color||'#ea580c');
+      });
+    }
+    // 总量
+    if(animProgress>0.9){
+      const displayVal=Math.round(val*100)/100;
+      mtText(ctx,String(displayVal)+(ax.unit?(' '+ax.unit):''),x0+plotW/2,axisY+bottomGap,{size:15,color:'#6b7280',align:'center',baseline:'top'});
+      if(dia.caption) mtText(ctx,dia.caption,x0+plotW/2,axisY+bottomGap+18,{size:15,color:'#6b7280',align:'center',baseline:'top'});
+    }
+    return cv;
+  }
+
+  const wrap=document.createElement('div'); wrap.className='mt-canvas-wrap';
+  let canvasEl=draw(); wrap.appendChild(canvasEl);
+
+  // 拖拽交互
+  let dragIdx=-1;
+  canvasEl.classList.add('mt-draggable');
+  function getMouseX(e){
+    const rect=canvasEl.getBoundingClientRect();
+    const ratio=(e.clientX-rect.left)/rect.width;
+    return ratio*W;
+  }
+  canvasEl.addEventListener('pointerdown',e=>{
+    const mx=getMouseX(e),my=(e.clientY-canvasEl.getBoundingClientRect().top)/canvasEl.getBoundingClientRect().height*H;
+    for(let i=0;i<handles.length;i++){
+      const hx=pos(handles[i].at);
+      if(Math.abs(mx-hx)<16&&Math.abs(my-axisY)<16){
+        dragIdx=i; handles[i].dragging=true;
+        canvasEl.classList.add('mt-dragging');
+        mtAddScore(playground,2,'探索');
+        e.preventDefault(); break;
+      }
+    }
   });
-  // 横轴
-  const axisLine=mtEl('line',{x1:x0,y1:axisY,x2:x0+plotW,y2:axisY},null);
-  axisLine.classList.add('mt-axis'); svg.appendChild(axisLine);
-  svg.appendChild(mtEl('line',{x1:x0,y1:axisY-7,x2:x0,y2:axisY+7,stroke:'#1f2937','stroke-width':2.6},null));
-  svg.appendChild(mtEl('line',{x1:x0+plotW,y1:axisY-7,x2:x0+plotW,y2:axisY+7,stroke:'#1f2937','stroke-width':2.6},null));
-  // 起止标签
-  if(ax.startLabel) svg.appendChild(mtEl('text',{x:x0,y:axisY+24,class:'mt-axis-label','text-anchor':'middle'},ax.startLabel));
-  if(ax.endLabel) svg.appendChild(mtEl('text',{x:x0+plotW,y:axisY+24,class:'mt-axis-label','text-anchor':'middle'},ax.endLabel));
-  // 等分刻度
-  if(ticks>0){ for(let i=0;i<=ticks;i++){ const tx=x0+plotW*i/ticks; svg.appendChild(mtEl('line',{x1:tx,y1:axisY-5,x2:tx,y2:axisY+5,class:'mt-tick'},null)); } }
-  // 关键点 + 可拖拽手柄
-  points.forEach(p=>{
-    const x=pos(p.at);
-    svg.appendChild(mtEl('line',{x1:x,y1:axisY-7,x2:x,y2:axisY+7,stroke:'#1f2937','stroke-width':1.8},null));
-    if(p.label) svg.appendChild(mtEl('text',{x:x,y:axisY+(p.below?26:-14),class:'mt-pt-label','text-anchor':'middle'},p.label));
-    // 可拖拽手柄
-    mtAddHandle(svg,host,x,axisY,p.label||'点',
-      (progress)=>{ const val=Math.round(progress*value); return val+(ax.unit||''); }
-    );
+  canvasEl.addEventListener('pointermove',e=>{
+    if(dragIdx<0)return;
+    const mx=getMouseX(e);
+    const ratio=Math.max(0,Math.min(1,(mx-x0)/plotW));
+    handles[dragIdx].at=ratio; // 转为 0~1 分数位置
+    const newCanvas=draw();
+    wrap.replaceChild(newCanvas,canvasEl);
+    canvasEl=newCanvas;
+    canvasEl.classList.add('mt-draggable');
+    if(dragIdx>=0) canvasEl.classList.add('mt-dragging');
+    // 更新反馈
+    const fb=playground.querySelector('.mt-feedback');
+    if(fb){
+      const val=Math.round(ratio*value*100)/100;
+      fb.innerHTML='🔍 拖到 <span class="mt-hint">'+handles[dragIdx].label+'</span> = <span class="mt-correct">'+val+(ax.unit||'')+'</span>';
+    }
   });
-  // 箭头（移动/相遇追及）— 带入场动画
-  arrows.forEach((a,idx)=>{
-    const x1=pos(a.from),x2=pos(a.to),ay=axisY-30,dir=x2>=x1?1:-1,col=a.color||'#2563eb';
-    const ln=mtEl('line',{x1:x1,y1:ay,x2:x2,y2:ay,stroke:col,'stroke-width':3,'stroke-linecap':'round','stroke-dasharray':Math.abs(x2-x1),'stroke-dashoffset':Math.abs(x2-x1)},null);
-    ln.classList.add('mt-arrow'); ln.style.transition='stroke-dashoffset .8s ease '+(idx*0.3)+'s';
-    svg.appendChild(ln);
-    const ah=7;
-    const head=mtEl('path',{d:'M '+x2+' '+ay+' L '+(x2-dir*ah)+' '+(ay-ah)+' L '+(x2-dir*ah)+' '+(ay+ah)+' Z',fill:col},null);
-    head.classList.add('mt-arrow-head'); head.style.opacity='0'; head.style.transition='opacity .3s ease '+(idx*0.3+0.6)+'s';
-    svg.appendChild(head);
-    if(a.label) svg.appendChild(mtEl('text',{x:(x1+x2)/2,y:ay-8,fill:col,'font-size':18,'font-weight':700,'text-anchor':'middle','dominant-baseline':'middle'},a.label));
-    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ln.setAttribute('stroke-dashoffset','0'); head.style.opacity='1'; }); });
-  });
-  // 大括号（支持多层 level）
-  braces.forEach(b=>{
-    const x1=pos(b.from),x2=pos(b.to),top=(b.side||'bottom')==='top',lv=+b.level||0,off=BASE+lv*STEP,by=axisY+(top?-off:off),dip=top?-6:6,col=b.color||'#ea580c';
-    const path=mtEl('path',{d:'M '+x1+' '+(axisY+(top?-1:1))+' L '+x1+' '+by+' Q '+((x1+x2)/2)+' '+(by+dip)+' '+x2+' '+by+' L '+x2+' '+(axisY+(top?-1:1)),fill:'none',stroke:col,'stroke-width':1.8,'stroke-linejoin':'round'},null);
-    path.classList.add('mt-brace'); svg.appendChild(path);
-    svg.appendChild(mtEl('text',{x:(x1+x2)/2,y:by+(top?dip-9:-dip+15),fill:col,'font-size':18,'font-weight':700,'text-anchor':'middle','dominant-baseline':'middle','class':'mt-brace-label'},b.label||''));
-  });
-  // 总量标注
-  if(ax.value!=null) svg.appendChild(mtEl('text',{x:x0+plotW/2,y:axisY+bottomGap,fill:'#6b7280','font-size':15,'text-anchor':'middle','dominant-baseline':'top'},String(value)+(ax.unit?(' '+ax.unit):'')));
-  if(dia.caption) svg.appendChild(mtEl('text',{x:x0+plotW/2,y:axisY+bottomGap+18,fill:'#6b7280','font-size':15,'text-anchor':'middle','dominant-baseline':'top'},dia.caption));
-  return host;
+  function endDrag(){
+    if(dragIdx>=0){handles[dragIdx].dragging=false;dragIdx=-1;canvasEl.classList.remove('mt-dragging');}
+  }
+  canvasEl.addEventListener('pointerup',endDrag);
+  canvasEl.addEventListener('pointerleave',endDrag);
+
+  // 数值探索滑块
+  let ctrl=null;
+  if(ax.value!=null){
+    ctrl=document.createElement('div'); ctrl.className='mt-controls';
+    ctrl.innerHTML='<span style="font-size:12px;color:#94a3b8">🔍 数值探索</span><input type="range" min="0.5" max="2" step="0.1" value="1"><span class="mt-val">1.0×</span>';
+    const range=ctrl.querySelector('input'),valEl=ctrl.querySelector('.mt-val');
+    range.addEventListener('input',()=>{
+      const k=parseFloat(range.value); valEl.textContent=k.toFixed(1)+'×';
+      mtAddScore(playground,2,'探索');
+      // 动画过渡
+      const oldK=curK;
+      mtAnimate(300,t=>{curK=oldK+(k-oldK)*t;const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;canvasEl.classList.add('mt-draggable');if(dragIdx>=0)canvasEl.classList.add('mt-dragging');});
+    });
+  }
+
+  // 入场动画
+  mtAnimate(700,t=>{animProgress=t;const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;canvasEl.classList.add('mt-draggable');if(dragIdx>=0)canvasEl.classList.add('mt-dragging');});
+
+  const result=document.createElement('div');
+  result.appendChild(wrap);
+  if(ctrl) result.appendChild(ctrl);
+  return result;
 }
 
-/* ===== 交互式 timeline 图（多步连续变化）===== */
-function buildTimelineInteractive(dia){
+/* --- timeline 连续变化图（Canvas + 步骤播放）--- */
+function buildTimelineCanvas(dia,playground){
   const stages=(dia&&Array.isArray(dia.stages))?dia.stages:[];
   if(!stages.length) return document.createElement('div');
   const vals=stages.map(s=>+s.value||0);
   let axisMin=Math.min(0,Math.min.apply(null,vals));
   let axisMax=Math.max.apply(null,vals);
-  if(axisMax===axisMin) axisMax=axisMin+1;
+  if(axisMax===axisMin)axisMax=axisMin+1;
   axisMax=Math.ceil(axisMax*1.1/5)*5;
-  const x0=40, plotW=400, W=x0+plotW+52;
-  const arrowY=44, oddNameY=70, axisY=112, evenNameY=134;
+  const x0=40,plotW=400,W=x0+plotW+52;
+  const arrowY=44,oddNameY=70,axisY=112,evenNameY=134;
   const H=evenNameY+22;
   const xOf=v=>x0+plotW*(v-axisMin)/(axisMax-axisMin);
-  const {host,svg}=mtCreateSVG(W,H);
-  // 横轴
-  svg.appendChild(mtEl('line',{x1:x0,y1:axisY,x2:x0+plotW,y2:axisY,stroke:'#475569','stroke-width':2},null));
-  svg.appendChild(mtEl('line',{x1:x0,y1:axisY-5,x2:x0,y2:axisY+5,stroke:'#475569','stroke-width':2},null));
-  svg.appendChild(mtEl('line',{x1:x0+plotW,y1:axisY-5,x2:x0+plotW,y2:axisY+5,stroke:'#475569','stroke-width':2},null));
-  // 阶段节点 + 变化箭头
-  stages.forEach((s,i)=>{
-    const x=xOf(+s.value||0);
-    svg.appendChild(mtEl('line',{x1:x,y1:axisY-9,x2:x,y2:axisY+9,stroke:'#1f2937','stroke-width':2.2},null));
-    const node=mtEl('circle',{cx:x,cy:axisY,r:5.5,fill:'#2563eb',stroke:'#fff','stroke-width':1.5},null);
-    node.classList.add('mt-tl-node'); svg.appendChild(node);
-    svg.appendChild(mtEl('text',{x:x,y:axisY-16,class:'mt-tl-val'},String(s.value)));
-    const above=(i%2===1); const nameY=above?oddNameY:evenNameY;
-    if(s.name) svg.appendChild(mtEl('text',{x:x,y:nameY,class:'mt-tl-name'},s.name));
-    // 变化箭头（带动画）
-    if(i>0){
-      const x1=xOf(+stages[i-1].value||0), x2=x;
-      if(Math.abs(x2-x1)>2){
-        const increasing=x2>x1, dir=increasing?1:-1, mx=(x1+x2)/2, ay=arrowY, ah=6;
-        const ln=mtEl('line',{x1:x1,y1:ay,x2:x2,y2:ay,stroke:'#ea580c','stroke-width':2.2},null);
-        ln.classList.add('mt-tl-delta-arrow');
-        ln.setAttribute('stroke-dasharray',Math.abs(x2-x1));
-        ln.setAttribute('stroke-dashoffset',Math.abs(x2-x1));
-        ln.style.transition='stroke-dashoffset .6s ease '+(i*0.3)+'s';
-        svg.appendChild(ln);
-        svg.appendChild(mtEl('path',{d:'M '+x2+' '+ay+' L '+(x2-dir*ah)+' '+(ay-ah)+' L '+(x2-dir*ah)+' '+(ay+ah)+' Z',fill:'#ea580c'},null));
-        let d=s.delta; if(d==null) d=(+stages[i].value||0)-(+stages[i-1].value||0);
-        let txt=s.deltaLabel||((d>0?'+':'')+d);
-        svg.appendChild(mtEl('text',{x:mx,y:ay-9,class:'mt-tl-delta'},txt));
-        requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ln.setAttribute('stroke-dashoffset','0'); }); });
+  let showCount=0;
+
+  function draw(){
+    const {cv,ctx}=mtCanvas(W,H);
+    // 横轴
+    ctx.strokeStyle='#475569';ctx.lineWidth=2;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x0,axisY);ctx.lineTo(x0+plotW,axisY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x0,axisY-5);ctx.lineTo(x0,axisY+5);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x0+plotW,axisY-5);ctx.lineTo(x0+plotW,axisY+5);ctx.stroke();
+    // 阶段
+    stages.forEach((s,i)=>{
+      if(i>=showCount)return;
+      const x=xOf(+s.value||0);
+      ctx.strokeStyle='#1f2937';ctx.lineWidth=2.2;
+      ctx.beginPath();ctx.moveTo(x,axisY-9);ctx.lineTo(x,axisY+9);ctx.stroke();
+      ctx.fillStyle='#667eea';ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(x,axisY,5.5,0,2*Math.PI);ctx.fill();ctx.stroke();
+      mtText(ctx,String(s.value),x,axisY-16,{size:18,weight:800,color:'#0f172a',align:'center',baseline:'middle'});
+      const above=(i%2===1);const nameY=above?oddNameY:evenNameY;
+      if(s.name)mtText(ctx,s.name,x,nameY,{size:13,weight:600,color:'#1f2937',align:'center',baseline:above?'alphabetic':'hanging'});
+      // 变化箭头
+      if(i>0&&i<showCount){
+        const x1=xOf(+stages[i-1].value||0),x2=x;
+        if(Math.abs(x2-x1)>2){
+          const increasing=x2>x1,dir=increasing?1:-1,mx=(x1+x2)/2;
+          mtArrow(ctx,x1,arrowY,x2,arrowY,'#ea580c',2.2);
+          let d=s.delta;if(d==null)d=(+stages[i].value||0)-(+stages[i-1].value||0);
+          let txt=s.deltaLabel||((d>0?'+':'')+d);
+          mtText(ctx,txt,mx,arrowY-9,{size:15,weight:800,color:'#ea580c',align:'center',baseline:'middle'});
+        }
       }
+    });
+    if(axisMin===0&&showCount>0)mtText(ctx,'0',x0,evenNameY,{size:13,weight:600,color:'#1f2937',align:'center',baseline:'hanging'});
+    return cv;
+  }
+  const wrap=document.createElement('div');wrap.className='mt-canvas-wrap';
+  let canvasEl=draw();wrap.appendChild(canvasEl);
+
+  // 步骤播放控件
+  const ctrl=document.createElement('div');ctrl.className='mt-controls';
+  ctrl.innerHTML='<button class="mt-secondary" id="mtPlay">▶ 播放</button><button class="mt-secondary" id="mtReset">↺ 重置</button><div class="mt-step-dots"></div>';
+  const dots=ctrl.querySelector('.mt-step-dots');
+  stages.forEach((_,i)=>{const d=document.createElement('div');d.className='mt-dot';d.addEventListener('click',()=>{showCount=i+1;redraw();updateDots();});dots.appendChild(d);});
+  function updateDots(){[...dots.children].forEach((d,i)=>{d.classList.toggle('done',i<showCount);d.classList.toggle('cur',i===showCount);});}
+  function redraw(){const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;}
+
+  let playing=false;
+  ctrl.querySelector('#mtPlay').onclick=()=>{
+    if(playing)return; playing=true;
+    showCount=0; redraw(); updateDots();
+    let i=0;
+    function step(){
+      if(i>=stages.length){playing=false;return;}
+      showCount=i+1; mtAddScore(playground,2,'探索'); redraw(); updateDots();
+      i++; setTimeout(step,600);
     }
-  });
-  if(axisMin===0) svg.appendChild(mtEl('text',{x:x0,y:evenNameY,class:'mt-tl-name'},'0'));
-  return host;
+    step();
+  };
+  ctrl.querySelector('#mtReset').onclick=()=>{showCount=0;redraw();updateDots();};
+
+  // 入场：逐步显示
+  mtAnimate(800,t=>{showCount=Math.ceil(t*stages.length);if(showCount>stages.length)showCount=stages.length;redraw();updateDots();});
+
+  const result=document.createElement('div');
+  result.appendChild(wrap); result.appendChild(ctrl);
+  return result;
 }
 
-/* ===== 交互式 segment 图（多行线段图）===== */
-function buildSegmentInteractive(dia){
+/* --- segment 多行线段图（Canvas）--- */
+function buildSegmentCanvas(dia,playground){
   if(!dia||!Array.isArray(dia.rows)||!dia.rows.length) return document.createElement('div');
   const rows=dia.rows;
-  const labelW=88, plotW=240, rowH=44, gap=30, top=22, left=10, rightPad=180;
+  const labelW=88,plotW=240,rowH=44,gap=30,top=22,left=10,rightPad=180;
   const totals=rows.map(r=>(r.parts||[]).reduce((s,p)=>s+(+p.value||0),0));
-  const globalMax=Math.max.apply(null, totals.concat([1]));
+  const globalMax=Math.max.apply(null,totals.concat([1]));
   const H=top+rows.length*rowH+(rows.length-1)*gap+30;
   const W=left+labelW+plotW+rightPad;
   const x0=left+labelW;
   const yOf=ri=>top+ri*(rowH+gap)+rowH/2;
-  const {host,svg}=mtCreateSVG(W,H);
-  const fallbackColors=['#2563eb','#ea580c','#db2777','#059669','#7c3aed'];
-  rows.forEach((r,ri)=>{
-    const total=totals[ri]||1;
-    const y=yOf(ri);
-    const rowW=plotW*total/globalMax;
-    const rowRight=x0+rowW;
-    svg.appendChild(mtEl('text',{x:left,y:y+4,fill:'#1f2937','font-size':19,'font-weight':700,'text-anchor':'start','dominant-baseline':'middle'},r.name||''));
-    svg.appendChild(mtEl('line',{x1:x0,y1:y,x2:rowRight,y2:y,stroke:'#1f2937','stroke-width':2.5,'stroke-linecap':'round'},null));
-    svg.appendChild(mtEl('line',{x1:x0,y1:y-7,x2:x0,y2:y+7,stroke:'#1f2937','stroke-width':2.5},null));
-    svg.appendChild(mtEl('line',{x1:rowRight,y1:y-7,x2:rowRight,y2:y+7,stroke:'#1f2937','stroke-width':2.5},null));
-    let x=x0;
-    (r.parts||[]).forEach((p,pi)=>{
-      const w=plotW*(+p.value||0)/globalMax;
-      if(w<2){ x+=w; return; }
-      if(pi>0) svg.appendChild(mtEl('line',{x1:x,y1:y-6,x2:x,y2:y+6,stroke:'#9ca3af','stroke-width':1.5},null));
-      const color=p.color||fallbackColors[pi%fallbackColors.length];
-      if(p.label) svg.appendChild(mtEl('text',{x:x+w/2,y:y-12,fill:color,'font-size':18,'font-weight':700,'text-anchor':'middle','dominant-baseline':'middle'},p.label));
-      x+=w;
+  const fallbackColors=['#667eea','#ea580c','#db2777','#059669','#7c3aed'];
+  let animProgress=0;
+
+  function draw(){
+    const {cv,ctx}=mtCanvas(W,H);
+    rows.forEach((r,ri)=>{
+      const total=totals[ri]||1;
+      const y=yOf(ri);
+      const rowW=plotW*total/globalMax*animProgress;
+      const rowRight=x0+rowW;
+      mtText(ctx,r.name||'',left,y+4,{size:19,weight:700,color:'#1f2937',align:'left',baseline:'middle'});
+      ctx.strokeStyle='#1f2937';ctx.lineWidth=2.5;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(rowRight,y);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x0,y-7);ctx.lineTo(x0,y+7);ctx.stroke();
+      if(animProgress>0.9){ctx.beginPath();ctx.moveTo(rowRight,y-7);ctx.lineTo(rowRight,y+7);ctx.stroke();}
+      let x=x0;
+      (r.parts||[]).forEach((p,pi)=>{
+        const w=plotW*(+p.value||0)/globalMax*animProgress;
+        if(w<2){x+=plotW*(+p.value||0)/globalMax;return;}
+        if(pi>0){ctx.strokeStyle='#9ca3af';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,y-6);ctx.lineTo(x,y+6);ctx.stroke();}
+        const color=p.color||fallbackColors[pi%fallbackColors.length];
+        if(p.label&&animProgress>0.8)mtText(ctx,p.label,x+w/2,y-12,{size:18,weight:700,color,align:'center',baseline:'middle'});
+        x+=plotW*(+p.value||0)/globalMax;
+      });
+      if(r.caption&&animProgress>0.9)mtText(ctx,r.caption,x0,y+22,{size:15,color:'#6b7280',align:'left',baseline:'hanging'});
     });
-    if(r.caption) svg.appendChild(mtEl('text',{x:x0,y:y+22,fill:'#6b7280','font-size':15,'text-anchor':'start','dominant-baseline':'hanging'},r.caption));
-  });
-  (dia.diffs||[]).forEach(diff=>{
-    const i=diff.rows&&diff.rows[0], j=diff.rows&&diff.rows[1];
-    if(i==null||j==null||i<0||j<0||i>=rows.length||j>=rows.length) return;
-    const yi=yOf(i),yj=yOf(j);
-    const xi=x0+plotW*(totals[i]||0)/globalMax, xj=x0+plotW*(totals[j]||0)/globalMax;
-    const maxRight=Math.max(xi,xj), bx=maxRight+18, my=(yi+yj)/2;
-    const path=mtEl('path',{d:'M '+bx+' '+yi+' L '+(bx+5)+' '+yi+' Q '+(bx+12)+' '+yi+' '+(bx+12)+' '+my+' Q '+(bx+12)+' '+yj+' '+(bx+5)+' '+yj+' L '+bx+' '+yj,fill:'none',stroke:'#ea580c','stroke-width':1.8},null);
-    path.classList.add('mt-brace'); svg.appendChild(path);
-    svg.appendChild(mtEl('text',{x:bx+22,y:my+4,fill:'#ea580c','font-size':18,'font-weight':700,'text-anchor':'start','dominant-baseline':'middle'},diff.label||''));
-  });
-  return host;
+    if(animProgress>0.85){
+      (dia.diffs||[]).forEach(diff=>{
+        const i=diff.rows&&diff.rows[0],j=diff.rows&&diff.rows[1];
+        if(i==null||j==null||i<0||j<0||i>=rows.length||j>=rows.length)return;
+        const yi=yOf(i),yj=yOf(j);
+        const xi=x0+plotW*(totals[i]||0)/globalMax,xj=x0+plotW*(totals[j]||0)/globalMax;
+        const maxRight=Math.max(xi,xj),bx=maxRight+18,my=(yi+yj)/2;
+        mtBrace(ctx,bx,bx,my,'bottom',null,'#ea580c'); // 简化：用文字标注
+        ctx.strokeStyle='#ea580c';ctx.lineWidth=1.8;ctx.lineJoin='round';
+        ctx.beginPath();ctx.moveTo(bx,yi);ctx.lineTo(bx+5,yi);ctx.quadraticCurveTo(bx+12,yi,bx+12,my);ctx.quadraticCurveTo(bx+12,yj,bx+5,yj);ctx.lineTo(bx,yj);ctx.stroke();
+        mtText(ctx,diff.label||'',bx+22,my+4,{size:18,weight:700,color:'#ea580c',align:'left',baseline:'middle'});
+      });
+    }
+    return cv;
+  }
+  const wrap=document.createElement('div');wrap.className='mt-canvas-wrap';
+  let canvasEl=draw();wrap.appendChild(canvasEl);
+  mtAnimate(700,t=>{animProgress=t;const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;});
+  const result=document.createElement('div');result.appendChild(wrap);return result;
 }
 
-/* ===== 交互式 trip 图（相遇/追及）===== */
-function buildTripInteractive(dia){
+/* --- trip 相遇/追及图（Canvas + 动画）--- */
+function buildTripCanvas(dia,playground){
   const kind=dia.kind||'meet';
   const movers=Array.isArray(dia.movers)?dia.movers:[];
   if(!movers.length) return document.createElement('div');
   const meet=+dia.meet||0;
   let total=+dia.total||0;
   total=Math.max(total,meet);
-  movers.forEach(m=>{ const off=+m.offset||0; total=Math.max(total,off+(+m.dist||0)); });
-  if(total<=0) total=1;
-  const x0=30, plotW=392, W=x0+plotW+30;
-  const roadY=108, arrowY=roadY-28;
+  movers.forEach(m=>{const off=+m.offset||0;total=Math.max(total,off+(+m.dist||0));});
+  if(total<=0)total=1;
+  const x0=30,plotW=392,W=x0+plotW+30;
+  const roadY=108,arrowY=roadY-28;
   const H=roadY+58;
   const xOf=v=>x0+plotW*(v/total);
-  const {host,svg}=mtCreateSVG(W,H);
-  // 路
-  svg.appendChild(mtEl('line',{x1:x0,y1:roadY,x2:x0+plotW,y2:roadY,stroke:'#475569','stroke-width':2.5},null));
-  svg.appendChild(mtEl('line',{x1:x0,y1:roadY-8,x2:x0,y2:roadY+8,stroke:'#475569','stroke-width':2.5},null));
-  svg.appendChild(mtEl('line',{x1:x0+plotW,y1:roadY-8,x2:x0+plotW,y2:roadY+8,stroke:'#475569','stroke-width':2.5},null));
-  if(dia.leftLabel) svg.appendChild(mtEl('text',{x:x0,y:roadY+28,class:'mt-tl-name','text-anchor':'middle'},dia.leftLabel));
-  if(dia.rightLabel) svg.appendChild(mtEl('text',{x:x0+plotW,y:roadY+28,class:'mt-tl-name','text-anchor':'middle'},dia.rightLabel));
-  // 移动者（带动画）
-  movers.forEach((m,i)=>{
-    const color=m.color||['#2563eb','#ea580c','#059669'][i%3];
-    const dist=+m.dist||0, off=+m.offset||0;
-    let x1,x2,dir;
-    if(kind==='catch'&&m.from==='right'){ x1=xOf(off); x2=xOf(off+dist); dir=1; }
-    else if(m.from==='right'){ x1=xOf(total); x2=xOf(total-dist); dir=-1; }
-    else { x1=xOf(0); x2=xOf(dist); dir=1; }
-    const ln=mtEl('line',{x1:x1,y1:arrowY,x2:x2,y2:arrowY,stroke:color,'stroke-width':3.2,'stroke-linecap':'round','stroke-dasharray':Math.abs(x2-x1),'stroke-dashoffset':Math.abs(x2-x1)},null);
-    ln.classList.add('mt-arrow'); ln.style.transition='stroke-dashoffset .8s ease '+(i*0.4)+'s';
-    svg.appendChild(ln);
-    const ah=8;
-    const head=mtEl('path',{d:'M '+x2+' '+arrowY+' L '+(x2-dir*ah)+' '+(arrowY-ah)+' L '+(x2-dir*ah)+' '+(arrowY+ah)+' Z',fill:color},null);
-    head.classList.add('mt-arrow-head'); head.style.opacity='0'; head.style.transition='opacity .3s ease '+(i*0.4+0.6)+'s';
-    svg.appendChild(head);
-    const mx=(x1+x2)/2;
-    svg.appendChild(mtEl('text',{x:mx,y:arrowY-9,fill:color,'font-size':18,'font-weight':700,'text-anchor':'middle','dominant-baseline':'middle'},m.name||('物体'+(i+1))));
-    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ln.setAttribute('stroke-dashoffset','0'); head.style.opacity='1'; }); });
-  });
-  // 相遇/追及点
-  if(meet>0&&meet<=total){
-    const mx=xOf(meet);
-    svg.appendChild(mtEl('line',{x1:mx,y1:arrowY-6,x2:mx,y2:roadY+14,stroke:'#7c3aed','stroke-width':1.6,'stroke-dasharray':'4 3'},null));
-    svg.appendChild(mtEl('text',{x:mx,y:arrowY-14,fill:'#ea580c','font-size':18,'font-weight':700,'text-anchor':'middle','dominant-baseline':'middle'},dia.meetLabel||(kind==='catch'?'追上':'相遇')));
+  let animProgress=0;
+
+  function draw(){
+    const {cv,ctx}=mtCanvas(W,H);
+    // 路
+    ctx.strokeStyle='#475569';ctx.lineWidth=2.5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x0,roadY);ctx.lineTo(x0+plotW,roadY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x0,roadY-8);ctx.lineTo(x0,roadY+8);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x0+plotW,roadY-8);ctx.lineTo(x0+plotW,roadY+8);ctx.stroke();
+    if(dia.leftLabel)mtText(ctx,dia.leftLabel,x0,roadY+28,{size:13,weight:600,color:'#1f2937',align:'center',baseline:'hanging'});
+    if(dia.rightLabel)mtText(ctx,dia.rightLabel,x0+plotW,roadY+28,{size:13,weight:600,color:'#1f2937',align:'center',baseline:'hanging'});
+    // 移动者
+    movers.forEach((m,i)=>{
+      const color=m.color||['#667eea','#ea580c','#059669'][i%3];
+      const dist=+m.dist||0,off=+m.offset||0;
+      let x1,x2,dir;
+      if(kind==='catch'&&m.from==='right'){x1=xOf(off);x2=xOf(off+dist);dir=1;}
+      else if(m.from==='right'){x1=xOf(total);x2=xOf(total-dist);dir=-1;}
+      else{x1=xOf(0);x2=xOf(dist);dir=1;}
+      const prog=Math.min(1,animProgress*1.2-i*0.15);
+      if(prog<=0)return;
+      const cx2=x1+(x2-x1)*Math.max(0,prog);
+      mtArrow(ctx,x1,arrowY,cx2,arrowY,color,3.2);
+      if(prog>0.8)mtText(ctx,m.name||('物体'+(i+1)),(x1+x2)/2,arrowY-9,{size:18,weight:700,color,align:'center',baseline:'middle'});
+    });
+    // 相遇点
+    if(meet>0&&meet<=total&&animProgress>0.7){
+      const mx=xOf(meet);
+      ctx.strokeStyle='#7c3aed';ctx.lineWidth=1.6;ctx.setLineDash([4,3]);
+      ctx.beginPath();ctx.moveTo(mx,arrowY-6);ctx.lineTo(mx,roadY+14);ctx.stroke();
+      ctx.setLineDash([]);
+      mtText(ctx,dia.meetLabel||(kind==='catch'?'追上':'相遇'),mx,arrowY-14,{size:18,weight:700,color:'#ea580c',align:'center',baseline:'middle'});
+    }
+    if(dia.caption&&animProgress>0.9)mtText(ctx,dia.caption,x0+plotW/2,roadY+50,{size:15,color:'#6b7280',align:'center',baseline:'hanging'});
+    return cv;
   }
-  if(dia.caption) svg.appendChild(mtEl('text',{x:x0+plotW/2,y:roadY+50,fill:'#6b7280','font-size':15,'text-anchor':'middle'},dia.caption));
-  return host;
+  const wrap=document.createElement('div');wrap.className='mt-canvas-wrap';
+  let canvasEl=draw();wrap.appendChild(canvasEl);
+  mtAnimate(900,t=>{animProgress=t;const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;});
+  const result=document.createElement('div');result.appendChild(wrap);return result;
 }
 
-/* ===== 交互式 fraction 图（分数/百分数）===== */
-function buildFractionInteractive(dia){
+/* --- fraction 分数/百分数图（Canvas + 点击交互）--- */
+function buildFractionCanvas(dia,playground){
   const den=Math.max(1,+dia.denominator||2);
   const num=Math.max(0,Math.min(den,+dia.numerator||1));
   const rate=dia.rate||(num+'/'+den);
-  const x0=20, plotW=400, W=x0+plotW+20;
-  const y=64, segW=plotW/den, H=168;
-  const {host,svg}=mtCreateSVG(W,H);
-  svg.appendChild(mtEl('line',{x1:x0,y1:y,x2:x0+plotW,y2:y,stroke:'#1f2937','stroke-width':3},null));
-  // 等分格（可点击切换着色）
+  const x0=20,plotW=400,W=x0+plotW+20;
+  const y=64,segW=plotW/den,H=168;
   let curShaded=num;
-  const cells=[];
-  for(let i=0;i<den;i++){
-    const sx=x0+i*segW;
-    const cell=mtEl('rect',{x:sx,y:y-18,width:segW,height:36,fill:i<num?'#2563eb':'#e5e7eb',stroke:'#fff','stroke-width':1.5},null);
-    cell.classList.add('mt-frac-cell'); cell.classList.add(i<num?'shaded':'unshaded');
-    cell.addEventListener('click',()=>{
-      curShaded=(i+1<=curShaded)?i:i+1;
-      cells.forEach((c,j)=>{ c.classList.remove('shaded','unshaded'); c.classList.add(j<curShaded?'shaded':'unshaded'); });
-      rateText.textContent=curShaded+'/'+den;
-    });
-    svg.appendChild(cell); cells.push(cell);
+  let animProgress=0;
+
+  function draw(){
+    const {cv,ctx}=mtCanvas(W,H);
+    // 单位1 基线
+    ctx.strokeStyle='#1f2937';ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x0+plotW*animProgress,y);ctx.stroke();
+    // 等分格
+    for(let i=0;i<den;i++){
+      if(i/den>animProgress)break;
+      const sx=x0+i*segW;
+      ctx.fillStyle=i<curShaded?'#667eea':'#e5e7eb';
+      ctx.fillRect(sx,y-18,segW,36);
+      ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
+      ctx.strokeRect(sx,y-18,segW,36);
+    }
+    // 分隔线
+    for(let i=1;i<=den;i++){if(i/den>animProgress)break;const sx=x0+i*segW;ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(sx,y-20);ctx.lineTo(sx,y+20);ctx.stroke();}
+    // 分率
+    if(animProgress>0.8&&curShaded>0)mtText(ctx,curShaded+'/'+den,x0+segW*curShaded/2,y-30,{size:18,weight:700,color:'#ea580c',align:'center',baseline:'middle'});
+    if(dia.shadedLabel&&animProgress>0.8)mtText(ctx,dia.shadedLabel,x0+segW*curShaded/2,y+34,{size:15,color:'#6b7280',align:'center',baseline:'hanging'});
+    if(animProgress>0.9){
+      const u=dia.unit!=null?dia.unit:'';
+      mtText(ctx,'单位"1" = '+u+'（'+(dia.unitLabel||'总量')+'）',x0,y+58,{size:13,weight:600,color:'#1f2937',align:'left',baseline:'alphabetic'});
+      if(dia.result!=null)mtText(ctx,String(dia.result),x0+plotW,y+58,{size:18,weight:700,color:'#ea580c',align:'right',baseline:'alphabetic'});
+    }
+    if(dia.caption&&animProgress>0.9)mtText(ctx,dia.caption,x0+plotW/2,y-48,{size:15,color:'#6b7280',align:'center',baseline:'alphabetic'});
+    return cv;
   }
-  for(let i=1;i<=den;i++){ const sx=x0+i*segW; svg.appendChild(mtEl('line',{x1:sx,y1:y-20,x2:sx,y2:y+20,stroke:'#94a3b8','stroke-width':1.4},null)); }
-  const rateText=mtEl('text',{x:x0+segW*num/2,y:y-30,class:'mt-frac-rate'},rate);
-  svg.appendChild(rateText);
-  if(dia.shadedLabel) svg.appendChild(mtEl('text',{x:x0+segW*num/2,y:y+34,fill:'#6b7280','font-size':15,'text-anchor':'middle'},dia.shadedLabel));
-  const u=dia.unit!=null?dia.unit:'';
-  svg.appendChild(mtEl('text',{x:x0,y:y+58,fill:'#1f2937','font-size':13,'font-weight':600,'text-anchor':'start'},'单位"1" = '+u+'（'+(dia.unitLabel||'总量')+'）'));
-  if(dia.result!=null) svg.appendChild(mtEl('text',{x:x0+plotW,y:y+58,fill:'#ea580c','font-size':18,'font-weight':700,'text-anchor':'end'},String(dia.result)));
-  if(dia.caption) svg.appendChild(mtEl('text',{x:x0+plotW/2,y:y-48,fill:'#6b7280','font-size':15,'text-anchor':'middle'},dia.caption));
-  return host;
+  const wrap=document.createElement('div');wrap.className='mt-canvas-wrap';
+  let canvasEl=draw();wrap.appendChild(canvasEl);
+
+  // 点击切换着色
+  canvasEl.addEventListener('click',e=>{
+    const rect=canvasEl.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)/rect.width*W;
+    const idx=Math.floor((mx-x0)/segW);
+    if(idx<0||idx>=den)return;
+    curShaded=(idx+1<=curShaded)?idx:idx+1;
+    mtAddScore(playground,2,'探索');
+    const fb=playground.querySelector('.mt-feedback');
+    if(fb)fb.innerHTML='分率：<span class="mt-correct">'+curShaded+'/'+den+'</span>';
+    const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;
+  });
+
+  mtAnimate(600,t=>{animProgress=t;const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;});
+  const result=document.createElement('div');result.appendChild(wrap);return result;
 }
 
-/* ===== 统一入口：交互式可视化渲染器 ===== */
+/* --- 统一入口 --- */
 function renderInteractiveDiagram(dia){
   if(!dia||!dia.type) return null;
-  const builders={ axis:buildAxisInteractive, timeline:buildTimelineInteractive, trip:buildTripInteractive, fraction:buildFractionInteractive };
-  const fn=builders[dia.type]||buildSegmentInteractive;
-  const host=fn(dia);
-  if(!host) return null;
-  host.classList.add('mt-fade-in');
-  return host;
+
+  // 创建 playground 容器
+  const playground=document.createElement('div'); playground.className='mt-playground';
+  // 积分栏
+  const scoreBar=document.createElement('div'); scoreBar.className='mt-score-bar';
+  const info=mtLevelInfo(mtScore.total);
+  scoreBar.innerHTML='<span class="mt-score">⭐ '+mtScore.total+'</span>'
+    +'<span class="mt-level">Lv.'+info.level+'</span>'
+    +'<div class="mt-progress-track"><div class="mt-progress-fill" style="width:'+Math.round(info.progress*100)+'%"></div></div>'
+    +'<span class="mt-streak">'+(mtScore.streak>=2?'🔥'+mtScore.streak+'连击':'')+'</span>';
+  playground.appendChild(scoreBar);
+  // 画图区
+  const builders={axis:buildAxisCanvas,timeline:buildTimelineCanvas,trip:buildTripCanvas,fraction:buildFractionCanvas};
+  const fn=builders[dia.type]||buildSegmentCanvas;
+  const content=fn(dia,playground);
+  playground.appendChild(content);
+  // 反馈区
+  const fb=document.createElement('div'); fb.className='mt-feedback'; fb.textContent='💡 拖动蓝色圆点探索数值，或调整滑块看数量关系变化';
+  playground.appendChild(fb);
+
+  return playground;
 }
 
 function renderWordProblem(ans){
@@ -1526,14 +1687,6 @@ function renderWordProblem(ans){
     const mtHost=renderInteractiveDiagram(dia);
     if(mtHost){
       const wrap=document.createElement('div'); wrap.className='wp-diag-host'; wrap.appendChild(mtHost); d.appendChild(wrap);
-      // 数值探索滑块（仅 axis 且含 value：同比例缩放，演示数量关系不变）
-      if(dia.type==='axis' && dia.axis && dia.axis.value!=null){
-        const ctrl=document.createElement('div'); ctrl.className='wp-explore';
-        ctrl.innerHTML='<span>🔍 数值探索（同比例缩放，数量关系不变）：</span><input type="range" min="0.5" max="2" step="0.1" value="1"><span class="kval">1.0×</span>';
-        const range=ctrl.querySelector('input'), kval=ctrl.querySelector('.kval');
-        range.addEventListener('input',()=>{ const k=parseFloat(range.value); kval.textContent=k.toFixed(1)+'×'; const r2=renderInteractiveDiagram(scaleDiagram(dia,k)); wrap.innerHTML=''; if(r2) wrap.appendChild(r2); });
-        d.appendChild(ctrl);
-      }
     }
   }
   if(!data){ const note=document.createElement('div'); note.className='wp-p'; note.style.color='#f59e0b'; note.textContent='（未解析到线段图数据，已显示文字分析）'; d.appendChild(note); }
