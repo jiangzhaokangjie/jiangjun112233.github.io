@@ -1126,11 +1126,21 @@ function scaleDiagram(dia,k){
   const c=JSON.parse(JSON.stringify(dia));
   if(c.axis && c.axis.value!=null) c.axis.value=+(c.axis.value*k).toFixed(6);
   const abs=v=>{ const f=+v; return (f>1||f<-1)?+(f*k).toFixed(6):v; };  // 仅"绝对值(非0~1)"才缩放
-  (c.points||[]).forEach(p=>{ if(p.at!=null) p.at=abs(p.at); });
-  (c.braces||[]).forEach(b=>{ if(b.from!=null)b.from=abs(b.from); if(b.to!=null)b.to=abs(b.to); });
+  (c.points||[]).forEach(p=>{ if(p.at!=null) p.at=abs(p.at); if(p.label) p.label=scaleText(p.label,k); });
+  (c.braces||[]).forEach(b=>{ if(b.from!=null)b.from=abs(b.from); if(b.to!=null)b.to=abs(b.to); if(b.label) b.label=scaleText(b.label,k); });
   (c.shade||[]).forEach(s=>{ if(s.from!=null)s.from=abs(s.from); if(s.to!=null)s.to=abs(s.to); });
-  (c.arrows||[]).forEach(a=>{ if(a.from!=null)a.from=abs(a.from); if(a.to!=null)a.to=abs(a.to); });
+  (c.arrows||[]).forEach(a=>{ if(a.from!=null)a.from=abs(a.from); if(a.to!=null)a.to=abs(a.to); if(a.label) a.label=scaleText(a.label,k); });
+  if(c.axis){ if(c.axis.startLabel) c.axis.startLabel=scaleText(c.axis.startLabel,k); if(c.axis.endLabel) c.axis.endLabel=scaleText(c.axis.endLabel,k); }
+  if(c.caption) c.caption=scaleText(c.caption,k);
   return c;
+}
+/* 缩放文本中的数字部分（保留中文/字母/符号不变，仅 ×k 数字） */
+function scaleText(txt,k){
+  if(!txt||typeof txt!=='string') return txt;
+  return txt.replace(/(\d+(?:\.\d+)?)/g,(m)=>{
+    const v=parseFloat(m)*k;
+    return Number.isInteger(v)?String(v):v.toFixed(2).replace(/\.?0+$/,'');
+  });
 }
 /* ===== 融合 math-teacher：撒花 + 积分（做对啦） ===== */
 function wpConfetti(){
@@ -1875,12 +1885,40 @@ async function doChatScan(file){
     setChatScanStatus('🔍 识别中…');
     const res=await ocr.predict(file);
     const items=(res&&res[0]&&res[0].items)||[];
+    if(!items.length){ setChatScanStatus('⚠️ 没识别到文字，换张清晰、摆正的图再试'); return; }
+    // 按位置排序（上→下，左→右），避免乱序
+    items.sort((a,b)=>{
+      const ay=(a.poly?.[0]?.[1]||0)+(a.poly?.[2]?.[1]||0)/2;
+      const by=(b.poly?.[0]?.[1]||0)+(b.poly?.[2]?.[1]||0)/2;
+      if(Math.abs(ay-by)>15) return ay-by; // 不同行：按 y 排
+      const ax=(a.poly?.[0]?.[0]||0), bx=(b.poly?.[0]?.[0]||0);
+      return ax-bx; // 同行：按 x 排
+    });
     const text=items.map(it=>it.text).join('\n').replace(/[ \t]+/g,' ').trim();
     if(!text){ setChatScanStatus('⚠️ 没识别到文字，换张清晰、摆正的图再试'); return; }
-    // 识别完成：填入输入框，不自动发送，请用户核对（避免识别错字直接画错图）
-    chatInput.value=text;
-    chatInput.focus();
-    setChatScanStatus('✅ 已识别并填入，请核对文字无误后点「发送」');
+
+    // 几何模式：OCR 只能识别文字，几何图形需用户补充
+    if(geoMode){
+      // 尝试从文字中提取关键几何信息
+      const hasShape = /三角形|长方形|正方形|平行四边形|梯形|圆|圆柱|圆锥|长方体|正方体/.test(text);
+      const hasMeasure = /\d+\s*(cm|厘米|mm|毫米|m|米|dm|分米|km|千米|°|度|cm²|平方|㎡)/i.test(text);
+      let msg='✅ 已识别文字：\n'+text;
+      if(!hasShape || !hasMeasure){
+        msg+='\n\n⚠️ 提示：拍照识别只能提取文字，几何图形（线段、角度、形状）需要你补充描述。';
+        msg+='\n请在文字后面补充图形信息，例如：';
+        if(!hasShape) msg+='\n  · 形状：如「三角形」「长方形8cm×5cm」「平行四边形底10高6」';
+        if(!hasMeasure) msg+='\n  · 尺寸：如「底8cm」「高5cm」「边长6cm」「角90°」';
+        msg+='\n\n完整示例：长方形长8cm宽5cm，求面积';
+      }
+      chatInput.value=msg;
+      chatInput.focus();
+      setChatScanStatus('✅ 已识别并填入，请补充图形信息后点「发送」');
+    } else {
+      // 应用题/普通模式：直接填入
+      chatInput.value=text;
+      chatInput.focus();
+      setChatScanStatus('✅ 已识别并填入，请核对文字无误后点「发送」');
+    }
   }catch(e){ setChatScanStatus('❌ 识别失败：'+(e.message||e)); }
 }
 document.getElementById('chatScan').onclick=()=>document.getElementById('chatScanFile').click();
