@@ -1115,15 +1115,15 @@ function renderWordProblem(ans){
     const dia=data.diagram;
     const renderers={ axis:drawAxisDiagram, timeline:drawTimelineDiagram, trip:drawTripDiagram, fraction:drawFractionDiagram };
     const fn=renderers[dia.type]||drawSegmentDiagram;
-    const svg=fn(dia);
-    if(svg){
-      const host=document.createElement('div'); host.className='wp-diag-host'; host.innerHTML=svg; d.appendChild(host);
+    const res=fn(dia);
+    if(res){
+      const host=document.createElement('div'); host.className='wp-diag-host'; if(typeof res==='string') host.innerHTML=res; else host.appendChild(res); d.appendChild(host);
       // 数值探索滑块（仅 axis 且含 value：同比例缩放，演示数量关系不变）
       if(dia.type==='axis' && dia.axis && dia.axis.value!=null){
         const ctrl=document.createElement('div'); ctrl.className='wp-explore';
         ctrl.innerHTML='<span>🔍 数值探索（同比例缩放，数量关系不变）：</span><input type="range" min="0.5" max="2" step="0.1" value="1"><span class="kval">1.0×</span>';
         const range=ctrl.querySelector('input'), kval=ctrl.querySelector('.kval');
-        range.addEventListener('input',()=>{ const k=parseFloat(range.value); kval.textContent=k.toFixed(1)+'×'; host.innerHTML=fn(scaleDiagram(dia,k)); });
+        range.addEventListener('input',()=>{ const k=parseFloat(range.value); kval.textContent=k.toFixed(1)+'×'; const r2=fn(scaleDiagram(dia,k)); host.innerHTML=''; if(typeof r2==='string') host.innerHTML=r2; else host.appendChild(r2); });
         d.appendChild(ctrl);
       }
     }
@@ -1136,6 +1136,27 @@ function renderWordProblem(ans){
   d.appendChild(pb);
   return d;
 }
+function cvSegLine(ctx,x1,y1,x2,y2){ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); }
+function cvSegText(ctx, txt, x, y, o){
+  if(txt==null||txt==='') return;
+  ctx.fillStyle=o.color||'#000';
+  ctx.font=(o.weight?o.weight+' ':'')+o.size+'px "Microsoft YaHei",sans-serif';
+  ctx.textAlign=o.align||'left';
+  ctx.textBaseline=o.baseline||'alphabetic';
+  ctx.fillText(String(txt), x, y);
+}
+// 创建一块按设备像素比放大的画布（保证高分屏清晰），逻辑坐标即为 W×H
+function cvSegCanvas(W,H){
+  const dpr=window.devicePixelRatio||1;
+  const cv=document.createElement('canvas');
+  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+  cv.style.width='100%'; cv.style.height='auto'; cv.style.display='block';
+  cv.style.aspectRatio=W+' / '+H;
+  const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
+  const wrap=document.createElement('div'); wrap.className='seg-diagram'; wrap.appendChild(cv);
+  return {cv, ctx, wrap};
+}
+/* ===== 多行线段图（segment）：用 canvas 绘制，数据结构与 SVG 版完全一致 ===== */
 function drawSegmentDiagram(diagram){
   if(!diagram || !Array.isArray(diagram.rows) || !diagram.rows.length) return '';
   const rows=diagram.rows;
@@ -1146,19 +1167,21 @@ function drawSegmentDiagram(diagram){
   const W=left+labelW+plotW+rightPad;
   const x0=left+labelW;
   const yOf=(ri)=>top+ri*(rowH+gap)+rowH/2;
-  const out=[];
+  const {cv,ctx,wrap}=cvSegCanvas(W,H);
+  // rows
   rows.forEach((r,ri)=>{
     const total=totals[ri]||1;
     const y=yOf(ri);
     const rowW=plotW*total/globalMax;
     const rowRight=x0+rowW;
     // 左侧名称
-    out.push('<text x="'+left+'" y="'+(y+4)+'" class="seg-name">'+escHtml(r.name||'')+'</text>');
+    cvSegText(ctx, r.name||'', left, y+4, {size:19, weight:700, color:'#1f2937', align:'left', baseline:'middle'});
     // 主线段
-    out.push('<line x1="'+x0+'" y1="'+y+'" x2="'+rowRight+'" y2="'+y+'" stroke="#1f2937" stroke-width="2.5"/>');
+    ctx.strokeStyle='#1f2937'; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.lineCap='round';
+    cvSegLine(ctx, x0,y, rowRight,y);
     // 两端端点竖线
-    out.push('<line x1="'+x0+'" y1="'+(y-7)+'" x2="'+x0+'" y2="'+(y+7)+'" stroke="#1f2937" stroke-width="2.5"/>');
-    out.push('<line x1="'+rowRight+'" y1="'+(y-7)+'" x2="'+rowRight+'" y2="'+(y+7)+'" stroke="#1f2937" stroke-width="2.5"/>');
+    cvSegLine(ctx, x0,y-7, x0,y+7);
+    cvSegLine(ctx, rowRight,y-7, rowRight,y+7);
     // parts 分隔线 + 上方份数标注
     let x=x0;
     const fallbackColors=['#2563eb','#ea580c','#db2777','#059669','#7c3aed'];
@@ -1166,20 +1189,22 @@ function drawSegmentDiagram(diagram){
       const w=plotW*(+p.value||0)/globalMax;
       if(w<2){ x+=w; return; }
       if(pi>0){
-        out.push('<line x1="'+x+'" y1="'+(y-6)+'" x2="'+x+'" y2="'+(y+6)+'" stroke="#9ca3af" stroke-width="1.5"/>');
+        ctx.strokeStyle='#9ca3af'; ctx.lineWidth=1.5;
+        cvSegLine(ctx, x,y-6, x,y+6);
       }
       const color=p.color || fallbackColors[pi % fallbackColors.length];
       if(p.label){
-        out.push('<text x="'+(x+w/2)+'" y="'+(y-12)+'" class="seg-part-label" fill="'+color+'">'+escHtml(p.label)+'</text>');
+        cvSegText(ctx, p.label, x+w/2, y-12, {size:18, weight:700, color, align:'center', baseline:'middle'});
       }
       x+=w;
     });
     // 下方 caption
     if(r.caption){
-      out.push('<text x="'+x0+'" y="'+(y+22)+'" class="seg-cap">'+escHtml(r.caption)+'</text>');
+      cvSegText(ctx, r.caption, x0, y+22, {size:15, color:'#6b7280', align:'left', baseline:'top'});
     }
   });
   // diffs：用花括号 { 包裹两行右端距离，标注"共/多/差"
+  ctx.lineWidth=1.8; ctx.lineJoin='round'; ctx.lineCap='round';
   (diagram.diffs||[]).forEach(diff=>{
     const i=diff.rows&&diff.rows[0], j=diff.rows&&diff.rows[1];
     if(i==null||j==null||i<0||j<0||i>=rows.length||j>=rows.length) return;
@@ -1189,11 +1214,17 @@ function drawSegmentDiagram(diagram){
     const bx=maxRight+18;
     const my=(yi+yj)/2;
     // 花括号：尖角贴线段右端（左），腹部向右凸出（远离线段），标签置于右侧，与课本一致
-    const brace='M '+bx+' '+yi+' L '+(bx+5)+' '+yi+' Q '+(bx+12)+' '+yi+' '+(bx+12)+' '+my+' Q '+(bx+12)+' '+yj+' '+(bx+5)+' '+yj+' L '+bx+' '+yj;
-    out.push('<path d="'+brace+'" stroke="#ea580c" stroke-width="1.8" fill="none"/>');
-    out.push('<text x="'+(bx+22)+'" y="'+(my+4)+'" class="seg-diff">'+escHtml(diff.label||'')+'</text>');
+    ctx.strokeStyle='#ea580c';
+    ctx.beginPath();
+    ctx.moveTo(bx, yi);
+    ctx.lineTo(bx+5, yi);
+    ctx.quadraticCurveTo(bx+12, yi, bx+12, my);
+    ctx.quadraticCurveTo(bx+12, yj, bx+5, yj);
+    ctx.lineTo(bx, yj);
+    ctx.stroke();
+    cvSegText(ctx, diff.label||'', bx+22, my+4, {size:18, weight:700, color:'#ea580c', align:'left', baseline:'middle'});
   });
-  return '<div class="seg-diagram"><svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMinYMin meet">'+out.join('')+'</svg></div>';
+  return wrap;
 }
 /* ===== 连续数轴（timeline）：适合「连续变化/多步变化」应用题 =====
    数据结构：{ "type":"timeline", "stages":[ {"name","value","delta?"}, ... ] }
@@ -1277,30 +1308,33 @@ function drawAxisDiagram(diagram){
   let maxB=0, maxT=0;
   braces.forEach(b=>{ const lv=+b.level||0; if((b.side||'bottom')==='top') maxT=Math.max(maxT,lv); else maxB=Math.max(maxB,lv); });
   const STEP=22, BASE=14;
-  const out=[];
-  // 着色区（轴线下层）
-  shades.forEach(s=>{ const x1=pos(s.from),x2=pos(s.to); out.push('<rect x="'+Math.min(x1,x2)+'" y="'+(axisY-13)+'" width="'+Math.abs(x2-x1)+'" height="26" fill="'+(s.color||'#2563eb')+'" opacity="0.3"/>'); });
-  // 横轴 + 端点（圆角线段，更童趣）
-  out.push('<line x1="'+x0+'" y1="'+axisY+'" x2="'+(x0+plotW)+'" y2="'+axisY+'" stroke="#1f2937" stroke-width="3.4" stroke-linecap="round"/>');
-  out.push('<line x1="'+x0+'" y1="'+(axisY-7)+'" x2="'+x0+'" y2="'+(axisY+7)+'" stroke="#1f2937" stroke-width="2.6" stroke-linecap="round"/>');
-  out.push('<line x1="'+(x0+plotW)+'" y1="'+(axisY-7)+'" x2="'+(x0+plotW)+'" y2="'+(axisY+7)+'" stroke="#1f2937" stroke-width="2.6" stroke-linecap="round"/>');
-  // 起止标签
-  if(ax.startLabel) out.push('<text x="'+x0+'" y="'+(axisY+24)+'" class="tl-name" text-anchor="middle">'+escHtml(ax.startLabel)+'</text>');
-  if(ax.endLabel) out.push('<text x="'+(x0+plotW)+'" y="'+(axisY+24)+'" class="tl-name" text-anchor="middle">'+escHtml(ax.endLabel)+'</text>');
-  // 等分刻度
-  if(ticks>0){ for(let i=0;i<=ticks;i++){ const tx=x0+plotW*i/ticks; out.push('<line x1="'+tx+'" y1="'+(axisY-5)+'" x2="'+tx+'" y2="'+(axisY+5)+'" stroke="#9ca3af" stroke-width="1.4"/>'); } }
-  // 关键点（圆角）
-  points.forEach(p=>{ const x=pos(p.at); out.push('<line x1="'+x+'" y1="'+(axisY-7)+'" x2="'+x+'" y2="'+(axisY+7)+'" stroke="#1f2937" stroke-width="1.8" stroke-linecap="round"/>'); out.push('<text x="'+x+'" y="'+(axisY+(p.below?26:-14))+'" class="tl-name" text-anchor="middle">'+escHtml(p.label||'')+'</text>'); });
-  // 箭头（移动/相遇追及）
-  arrows.forEach(a=>{ const x1=pos(a.from),x2=pos(a.to),ay=axisY-30,dir=x2>=x1?1:-1; out.push('<line x1="'+x1+'" y1="'+ay+'" x2="'+x2+'" y2="'+ay+'" stroke="'+(a.color||'#2563eb')+'" stroke-width="3"/>'); const hx=dir>0?x2:x1,ah=7; out.push('<path d="M '+hx+' '+ay+' L '+(hx-dir*ah)+' '+(ay-ah)+' L '+(hx-dir*ah)+' '+(ay+ah)+' Z" fill="'+(a.color||'#2563eb')+'"/>'); if(a.label) out.push('<text x="'+((x1+x2)/2)+'" y="'+(ay-8)+'" class="seg-part-label" fill="'+(a.color||'#2563eb')+'">'+escHtml(a.label)+'</text>'); });
-  // 大括号（标注区间，支持多层 level：同一侧逐层向外扩——解决归一/归总嵌套大括号）
-  braces.forEach(b=>{ const x1=pos(b.from),x2=pos(b.to),top=(b.side||'bottom')==='top',lv=+b.level||0,off=BASE+lv*STEP,by=axisY+(top?-off:off),dip=top?-6:6; const path='M '+x1+' '+(axisY+(top?-1:1))+' L '+x1+' '+by+' Q '+((x1+x2)/2)+' '+(by+dip)+' '+x2+' '+by+' L '+x2+' '+(axisY+(top?-1:1)); out.push('<path d="'+path+'" fill="none" stroke="'+(b.color||'#ea580c')+'" stroke-width="1.8"/>'); out.push('<text x="'+((x1+x2)/2)+'" y="'+(by+(top?dip-9:-dip+15))+'" class="seg-diff" text-anchor="middle" fill="'+(b.color||'#ea580c')+'">'+escHtml(b.label||'')+'</text>'); });
   // 轴下方总距离（有下层大括号时下移避让）
   const bottomGap = maxB>0 ? (BASE+maxB*STEP+34) : 44;
-  if(ax.value!=null){ out.push('<text x="'+(x0+plotW/2)+'" y="'+(axisY+bottomGap)+'" class="seg-cap" text-anchor="middle">'+escHtml(String(value)+(ax.unit?(' '+ax.unit):''))+'</text>'); }
-  if(diagram.caption) out.push('<text x="'+(x0+plotW/2)+'" y="'+(axisY+bottomGap+18)+'" class="seg-cap" text-anchor="middle">'+escHtml(diagram.caption)+'</text>');
   const H=axisY + (diagram.caption? bottomGap+24 : bottomGap+6);
-  return '<div class="seg-diagram"><svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMinYMin meet">'+out.join('')+'</svg></div>';
+  const {cv,ctx,wrap}=cvSegCanvas(W,H);
+  // 着色区（轴线下层）
+  shades.forEach(s=>{ const x1=pos(s.from),x2=pos(s.to); ctx.fillStyle=(s.color||'#2563eb'); ctx.globalAlpha=0.3; ctx.fillRect(Math.min(x1,x2), axisY-13, Math.abs(x2-x1), 26); ctx.globalAlpha=1; });
+  // 横轴 + 端点（圆角线段，更童趣）
+  ctx.strokeStyle='#1f2937'; ctx.lineWidth=3.4; ctx.lineJoin='round'; ctx.lineCap='round';
+  cvSegLine(ctx, x0,axisY, x0+plotW,axisY);
+  ctx.lineWidth=2.6;
+  cvSegLine(ctx, x0,axisY-7, x0,axisY+7);
+  cvSegLine(ctx, x0+plotW,axisY-7, x0+plotW,axisY+7);
+  // 起止标签
+  if(ax.startLabel) cvSegText(ctx, ax.startLabel, x0, axisY+24, {size:13, weight:600, color:'#1f2937', align:'center', baseline:'top'});
+  if(ax.endLabel) cvSegText(ctx, ax.endLabel, x0+plotW, axisY+24, {size:13, weight:600, color:'#1f2937', align:'center', baseline:'top'});
+  // 等分刻度
+  if(ticks>0){ ctx.strokeStyle='#9ca3af'; ctx.lineWidth=1.4; ctx.lineCap='round'; for(let i=0;i<=ticks;i++){ const tx=x0+plotW*i/ticks; cvSegLine(ctx, tx,axisY-5, tx,axisY+5); } }
+  // 关键点（圆角）
+  points.forEach(p=>{ const x=pos(p.at); ctx.strokeStyle='#1f2937'; ctx.lineWidth=1.8; ctx.lineCap='round'; cvSegLine(ctx, x,axisY-7, x,axisY+7); cvSegText(ctx, p.label||'', x, axisY+(p.below?26:-14), {size:13, weight:600, color:'#1f2937', align:'center', baseline:'top'}); });
+  // 箭头（移动/相遇追及）
+  arrows.forEach(a=>{ const x1=pos(a.from),x2=pos(a.to),ay=axisY-30,dir=x2>=x1?1:-1,col=a.color||'#2563eb'; ctx.strokeStyle=col; ctx.lineWidth=3; ctx.lineCap='round'; cvSegLine(ctx, x1,ay, x2,ay); const hx=dir>0?x2:x1,ah=7; ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(hx,ay); ctx.lineTo(hx-dir*ah, ay-ah); ctx.lineTo(hx-dir*ah, ay+ah); ctx.closePath(); ctx.fill(); if(a.label) cvSegText(ctx, a.label, (x1+x2)/2, ay-8, {size:18, weight:700, color:col, align:'center', baseline:'middle'}); });
+  // 大括号（标注区间，支持多层 level：同一侧逐层向外扩——解决归一/归总嵌套大括号）
+  braces.forEach(b=>{ const x1=pos(b.from),x2=pos(b.to),top=(b.side||'bottom')==='top',lv=+b.level||0,off=BASE+lv*STEP,by=axisY+(top?-off:off),dip=top?-6:6,col=b.color||'#ea580c'; ctx.strokeStyle=col; ctx.lineWidth=1.8; ctx.lineJoin='round'; ctx.beginPath(); ctx.moveTo(x1, axisY+(top?-1:1)); ctx.lineTo(x1, by); ctx.quadraticCurveTo((x1+x2)/2, by+dip, x2, by); ctx.lineTo(x2, axisY+(top?-1:1)); ctx.stroke(); cvSegText(ctx, b.label||'', (x1+x2)/2, by+(top?dip-9:-dip+15), {size:18, weight:700, color:col, align:'center', baseline:'middle'}); });
+  // 轴下方总距离 / 说明
+  if(ax.value!=null){ cvSegText(ctx, String(value)+(ax.unit?(' '+ax.unit):''), x0+plotW/2, axisY+bottomGap, {size:15, color:'#6b7280', align:'center', baseline:'top'}); }
+  if(diagram.caption){ cvSegText(ctx, diagram.caption, x0+plotW/2, axisY+bottomGap+18, {size:15, color:'#6b7280', align:'center', baseline:'top'}); }
+  return wrap;
 }
 /* ===== 行程问题（trip）：相遇 / 追及 =====
    meet：甲、乙从两端相向而行，road=全程，meet=相遇点距左端距离。
