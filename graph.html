@@ -1022,17 +1022,29 @@ function escHtml(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace
 function wpSystemPrompt(){
   return `你是一位善于用「线段图」帮小学生拆解应用题的数学辅导老师。
 
-⚠️⚠️⚠️ 第一步（最关键）：默认用「书本风格多行线段图」type:"segment"！⚠️⚠️⚠️
-下面这张决策表是硬性规则：
+⚠️⚠️⚠️ 第一步（最关键）：先判断题型，再按下面规则画「课本风格图」。⚠️⚠️⚠️
+所有图都要像小学课本：蓝色线段 + 紫红色括号 + 黑色文字；不要画成复杂统计图，不要显示交互控件。
+
+【小学应用题画图决策表】
 
 | 题目类型 | diagram.type 必须设为 |
 |---|---|
-| 和差、和倍、差倍、比多少、部分-整体、倍数关系、归一归总、求总数、比较两个量 | **"segment"**（默认，书本风格多行线段图） |
-| 速度/路程、行程、中点、桥长、相遇/追及 | **"axis"**（课本单条线段图，不能画成多行 segment） |
-| 分数/百分数（需着色表示部分占整体） | "axis"（单轴图+着色） |
-| 仅当「多步连续变化」：原有→取走→又给、先涨后跌 | "timeline"（连续变化轴） |
+| 和差、和倍、差倍、比多比少、两个量比较 | **"segment"**：两行或多行线段，对齐相同部分，右侧括号标“共/多/少/差” |
+| 倍数关系、年龄问题、鸡兔同笼中可用“份数”表示的关系 | **"segment"**：每份画成等长小段，1倍画1段，几倍画几段 |
+| 归一归总、平均分、每份数/份数/总数、单价数量总价、工作效率总量 | **"segment"**：一条线段平均分成若干份，上方标总量，下方标份数或每份 |
+| 分数、百分数、折扣、税率、成数、单位“1”、已知几分之几求整体/部分 | **"axis"**：一条单位“1”线段，按分母等分，括号标整体和部分 |
+| 速度/路程/时间、行程、中点、桥长、火车过桥、比例尺上的距离 | **"axis"**：一条从起点到终点的线段，刻度表示距离或时间，不能画多行 |
+| 相遇、追及、两车同时出发、相向/同向运动 | **"axis"**：一条路程线段，两端或同端标人物/车辆，用点和括号标相遇点、追及点、全程 |
+| 工程问题、水管注水排水、共同完成、效率问题 | **"axis"**：把工作总量看成单位“1”，分段标时间/效率/完成部分 |
+| 多步连续变化、还原问题、先增加再减少、库存变化、年龄过几年 | **"timeline"**：按“原来→变化1→变化2→现在”画连续变化轴 |
+| 周长、面积、体积、路线绕行、图形拼剪 | **"axis"** 或几何模式：若只是数量关系，用线段标长宽高；若需图形，diagram 可省，转为文字分析 |
+| 植树、间隔、爬楼、敲钟、方阵、周期、盈亏、鸡兔同笼需列表试算 | 优先用 "segment" 表示份数/间隔；不能清楚表示时 diagram 可省，只给 analysis |
 
-🚫 凡是涉及两个或多个量的比较关系（和差倍），一律用 type:"segment"！
+🚫 强制规则：
+1. 凡是两个或多个量的比较关系（和差倍、年龄、倍数、鸡兔份数），一律用 segment。
+2. 凡是路程/中点/速度/桥长/比例尺/相遇追及，一律用 axis 单条线段，不要画成多行。
+3. 凡是原来→后来连续变化，一律用 timeline。
+4. 图中 value 是“画图长度”，未知量也要给合理比例值，并用 label:"?" 或 "? 个" 标出来，不要 value:0。
 
 1. 先用 1~2 句鼓励、引导的话开头（自然语言，不要 Markdown 符号）。
 2. 然后输出 \`\`\`json 代码块（严格合法、可 JSON.parse）：
@@ -1046,7 +1058,7 @@ function wpSystemPrompt(){
   "diagram": { ...按上表选对应类型... }
 }
 
-【segment 书本风格多行线段图结构】——多行水平线段 + 左侧名称 + 上方份数标注 + 右侧大括号：
+【segment 结构】——多行水平线段 + 左侧名称 + 上方/下方括号 + 右侧关系括号：
 {
   "type":"segment",
   "rows": [
@@ -1065,23 +1077,19 @@ function wpSystemPrompt(){
   "caption": "数量关系式"
 }
 • rows：每行代表一个量（甲、乙等），左对齐排列。
-• parts：将该量的线段分成若干段，每段标注数值。未知量用 {"value":0,"label":"?","unknown":true} 表示。
-• totalLabel：该行总量标注（显示在线段右侧），未知量可标 "?" 并设 "unknown":true。
+• parts：将该量的线段分成若干段，每段标注数值或份数。未知量也要给估计长度，如 {"value":12,"label":"? 个","unknown":true}。
+• totalLabel：该行总量标注，未知量可标 "?"。
 • diffs：行间关系大括号，rows 指定涉及哪两行（索引从0开始），label 为关系文字（如"共72""多24""少12"）。
 
-【segment 示例】
-① 和差问题（甲乙共60，甲比乙多12，求各多少）：
-{"type":"segment","rows":[{"name":"甲","parts":[{"value":24,"label":"24"},{"value":12,"label":"12"}],"totalLabel":"48"},{"name":"乙","parts":[{"value":24,"label":"24"}],"totalLabel":"24"}],"diffs":[{"rows":[0,1],"label":"多12"}],"caption":"乙=(60-12)÷2=24，甲=24+12=36"}
-② 和倍问题（甲乙共60，甲是乙的3倍，求各多少）：
-{"type":"segment","rows":[{"name":"甲","parts":[{"value":15,"label":"15"},{"value":15,"label":"15"},{"value":15,"label":"15"}],"totalLabel":"45"},{"name":"乙","parts":[{"value":15,"label":"15"}],"totalLabel":"15"}],"diffs":[{"rows":[0,1],"label":"共60"}],"caption":"乙=60÷(3+1)=15，甲=15×3=45"}
-③ 差倍问题（甲比乙多24，甲是乙的3倍，求各多少）：
-{"type":"segment","rows":[{"name":"甲","parts":[{"value":12,"label":"12"},{"value":12,"label":"12"},{"value":12,"label":"12"}],"totalLabel":"36"},{"name":"乙","parts":[{"value":12,"label":"12"}],"totalLabel":"12"}],"diffs":[{"rows":[0,1],"label":"多24"}],"caption":"乙=24÷(3-1)=12，甲=12×3=36"}
-④ 归一问题（100块金砖，每箱同样多，4箱装完，每箱多少）：
-{"type":"segment","rows":[{"name":"共","parts":[{"value":25,"label":"25"},{"value":25,"label":"25"},{"value":25,"label":"25"},{"value":25,"label":"25"}],"totalLabel":"100"}],"caption":"100÷4=25"}
-⑤ 求未知（甲乙共72，甲是乙的2倍，求乙）：
-{"type":"segment","rows":[{"name":"甲","parts":[{"value":24,"label":"24"},{"value":24,"label":"24"}],"totalLabel":"?"},{"name":"乙","parts":[{"value":24,"label":"24"}],"totalLabel":"?"}],"diffs":[{"rows":[0,1],"label":"共72"}],"caption":"乙=72÷(2+1)=24"}
+【segment 示例库】
+和差：{"type":"segment","rows":[{"name":"甲","parts":[{"value":24,"label":"同样多"},{"value":12,"label":"多12"}],"totalLabel":"?"},{"name":"乙","parts":[{"value":24,"label":"同样多"}],"totalLabel":"?"}],"diffs":[{"rows":[0,1],"label":"共60"}],"caption":"乙=(60-12)÷2，甲=乙+12"}
+和倍：{"type":"segment","rows":[{"name":"甲","parts":[{"value":15,"label":"1份"},{"value":15,"label":"1份"},{"value":15,"label":"1份"}],"totalLabel":"?"},{"name":"乙","parts":[{"value":15,"label":"1份"}],"totalLabel":"?"}],"diffs":[{"rows":[0,1],"label":"共60"}],"caption":"乙=60÷(3+1)"}
+差倍：{"type":"segment","rows":[{"name":"甲","parts":[{"value":12,"label":"1份"},{"value":12,"label":"1份"},{"value":12,"label":"1份"}],"totalLabel":"?"},{"name":"乙","parts":[{"value":12,"label":"1份"}],"totalLabel":"?"}],"diffs":[{"rows":[0,1],"label":"多24"}],"caption":"乙=24÷(3-1)"}
+归一归总：{"type":"segment","rows":[{"name":"共","parts":[{"value":25,"label":"每箱?块"},{"value":25,"label":"每箱?块"},{"value":25,"label":"每箱?块"},{"value":25,"label":"每箱?块"}],"totalLabel":"100块"}],"caption":"100÷4=25"}
+年龄倍数：{"type":"segment","rows":[{"name":"爸爸","parts":[{"value":8,"label":"1份"},{"value":8,"label":"1份"},{"value":8,"label":"1份"},{"value":8,"label":"1份"}],"totalLabel":"?"},{"name":"小明","parts":[{"value":8,"label":"1份"}],"totalLabel":"?"}],"diffs":[{"rows":[0,1],"label":"相差24岁"}],"caption":"小明=24÷(4-1)"}
+鸡兔同笼份数法：{"type":"segment","rows":[{"name":"鸡兔","parts":[{"value":2,"label":"每只先按2条腿"},{"value":2,"label":"多出的腿"}],"totalLabel":"总腿数"}],"caption":"先假设全是鸡，再看多出的腿对应几只兔"}
 
-【axis 单轴图结构】——仅用于速度/相遇追及/分数百分数：
+【axis 结构】——单条线段，适合路程/单位1/工作总量/比例尺：
 {
   "type":"axis",
   "axis": {"startLabel":"起点名","endLabel":"终点名","value":全程数值,"unit":"单位","ticks":等分数},
@@ -1092,14 +1100,20 @@ function wpSystemPrompt(){
   "caption": "数量关系式"
 }
 
-【axis 示例：速度题，必须画成一条线段】
-题目：甲、乙两地相距680千米，汽车5小时行到中点，求速度。
+【axis 示例库】
+速度中点：
 {"type":"axis","axis":{"startLabel":"甲","endLabel":"乙","value":680,"unit":"千米","ticks":10},"points":[{"at":0.5,"label":"中点","below":false}],"braces":[{"from":0,"to":0.125,"label":"? 千米","side":"top","level":0},{"from":0,"to":0.5,"label":"5小时","side":"bottom","level":0},{"from":0,"to":1,"label":"680 千米","side":"bottom","level":1}],"caption":"680÷2÷5=68（千米/时）"}
+火车过桥：{"type":"axis","axis":{"startLabel":"上桥","endLabel":"离桥","value":1360,"unit":"米","ticks":0},"points":[{"at":0.882,"label":"桥长1200米","below":false}],"braces":[{"from":0,"to":0.882,"label":"桥长1200米","side":"top","level":0},{"from":0.882,"to":1,"label":"车长160米","side":"top","level":0},{"from":0,"to":1,"label":"火车过桥所走的总路程","side":"bottom","level":0}],"caption":"(1200+160)÷20=68（秒）"}
+分数单位1：{"type":"axis","axis":{"startLabel":"单位1","endLabel":"","value":1,"unit":"","ticks":5},"points":[],"braces":[{"from":0,"to":1,"label":"全班40人","side":"top","level":0},{"from":0,"to":0.6,"label":"男生占3/5","side":"bottom","level":0}],"shade":[{"from":0,"to":0.6,"color":"#2f7fb8"}],"caption":"40×3/5=24"}
+工程单位1：{"type":"axis","axis":{"startLabel":"开工","endLabel":"完工","value":1,"unit":"","ticks":5},"points":[{"at":0.6,"label":"已完成","below":false}],"braces":[{"from":0,"to":1,"label":"工作总量1","side":"top","level":0},{"from":0,"to":0.6,"label":"已做3/5","side":"bottom","level":0}],"caption":"剩下=1-3/5=2/5"}
 
-通用：开头用自然语言不要 Markdown；和差倍类一律 segment；速度/相遇/分数用 axis；多步连续变化用 timeline；不适合画图时 diagram 可省只给 analysis。`;
+【timeline 结构】——连续变化/还原问题：
+{"type":"timeline","stages":[{"name":"原来","value":120},{"name":"取走","value":80,"deltaLabel":"-40"},{"name":"又添","value":95,"deltaLabel":"+15"},{"name":"现在","value":95}],"caption":"按时间顺序找变化"}
+
+通用：开头用自然语言不要 Markdown；必须优先按决策表选图；不适合画图时 diagram 可省只给 analysis。`;
 }
 function buildWPPrompt(text){
-  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出线段图：\n\n${text}\n\n⚠️ 默认用「书本风格多行线段图」{"type":"segment","rows":[...]}（多行水平线段+左侧名称+上方份数标注+右侧大括号），覆盖和差/和倍/差倍/比多少/部分整体/归一归总等绝大多数题。\n速度/路程/中点/桥长/相遇追及必须用 {"type":"axis",...}，画成课本里的单条线段图，不要画成多行 segment。\n分数/百分数也用 {"type":"axis",...}（着色）。多步连续变化用 {"type":"timeline","stages":[...]} 兜底。\n输出格式：先用 1~2 句自然语言引导，再输出 \`\`\`json 块（含 analysis + diagram）。`;
+  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出课本风格示意图：\n\n${text}\n\n⚠️ 先判断题型再选图：和差/和倍/差倍/比多少/年龄/倍数/归一归总/平均分/鸡兔份数用 {"type":"segment","rows":[...]}；速度/路程/中点/桥长/相遇追及/分数百分数/工程单位1/比例尺用 {"type":"axis",...}；原来→后来连续变化/还原问题用 {"type":"timeline","stages":[...]}。\n所有图都要像小学课本：蓝色线段、紫红色括号、黑色文字；速度题必须是一条线段，不要画成多行。\n输出格式：先用 1~2 句自然语言引导，再输出 \`\`\`json 块（含 analysis + diagram）。`;
 }
 function parseWP(ans){
   const m = ans.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -1443,12 +1457,12 @@ function buildAxisCanvas(dia,playground){
       mtAddScore(playground,2,'探索');
       // 动画过渡
       const oldK=curK;
-      mtAnimate(300,t=>{curK=oldK+(k-oldK)*t;const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;canvasEl.classList.add('mt-draggable');if(dragIdx>=0)canvasEl.classList.add('mt-dragging');});
+      mtAnimate(300,t=>{curK=oldK+(k-oldK)*t;const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;if(!textbook)canvasEl.classList.add('mt-draggable');if(dragIdx>=0)canvasEl.classList.add('mt-dragging');});
     });
   }
 
   // 入场动画
-  mtAnimate(700,t=>{animProgress=t;const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;canvasEl.classList.add('mt-draggable');if(dragIdx>=0)canvasEl.classList.add('mt-dragging');});
+  mtAnimate(700,t=>{animProgress=t;const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;if(!textbook)canvasEl.classList.add('mt-draggable');if(dragIdx>=0)canvasEl.classList.add('mt-dragging');});
 
   const result=document.createElement('div');
   result.appendChild(wrap);
@@ -1460,6 +1474,7 @@ function buildAxisCanvas(dia,playground){
 function buildTimelineCanvas(dia,playground){
   const stages=(dia&&Array.isArray(dia.stages))?dia.stages:[];
   if(!stages.length) return document.createElement('div');
+  const textbook=playground&&playground.classList&&playground.classList.contains('textbook-playground');
   const vals=stages.map(s=>+s.value||0);
   let axisMin=Math.min(0,Math.min.apply(null,vals));
   let axisMax=Math.max.apply(null,vals);
@@ -1504,8 +1519,16 @@ function buildTimelineCanvas(dia,playground){
     if(axisMin===0&&showCount>0)mtText(ctx,'0',x0,evenNameY,{size:13,weight:600,color:'#1f2937',align:'center',baseline:'hanging'});
     return cv;
   }
-  const wrap=document.createElement('div');wrap.className='mt-canvas-wrap';
+  const wrap=document.createElement('div');wrap.className=textbook?'mt-canvas-wrap textbook-seg':'mt-canvas-wrap';
   let canvasEl=draw();wrap.appendChild(canvasEl);
+
+  if(textbook){
+    showCount=stages.length;
+    const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;
+    const result=document.createElement('div');
+    result.appendChild(wrap);
+    return result;
+  }
 
   // 步骤播放控件
   const ctrl=document.createElement('div');ctrl.className='mt-controls';
@@ -1794,7 +1817,7 @@ function renderInteractiveDiagram(dia){
   if(!dia||!dia.type) return null;
 
   // 创建 playground 容器
-  const isTextbook=dia.type==='segment'||dia.type==='axis'||(dia.rows&&Array.isArray(dia.rows));
+  const isTextbook=dia.type==='segment'||dia.type==='axis'||dia.type==='timeline'||(dia.rows&&Array.isArray(dia.rows));
   const playground=document.createElement('div'); playground.className=isTextbook?'mt-playground textbook-playground':'mt-playground';
   if(!isTextbook){
     // 积分栏
