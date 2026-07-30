@@ -147,8 +147,10 @@
   .wp-analysis ul,.wp-analysis ol{margin:2px 0 2px 18px;font-size:13px;color:#cbd5e1;line-height:1.65}
   .seg-diagram{margin:10px 0 4px;background:#ffffff;border:1px solid #d1d5db;border-radius:10px;padding:10px 6px 6px}
   .seg-diagram svg{display:block}
-  .seg-name{fill:#1f2937;font-size:19px;dominant-baseline:middle;font-weight:700}
-  .seg-part-label{font-size:18px;font-weight:700;text-anchor:middle;dominant-baseline:middle}
+  .seg-name{fill:#000000;font-size:16px;dominant-baseline:middle;font-weight:700}
+  .seg-part-label{font-size:14px;font-weight:600;text-anchor:middle;dominant-baseline:middle}
+  /* —— 书本风格线段图 —— */
+  .mt-canvas-wrap.textbook-seg{background:#fefefe;border:1px solid #e5e7eb;border-radius:8px;padding:12px 8px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
   /* —— math-teacher 风格交互式可视化 —— */
   .wp-diag-host{margin:2px 0}
   .wp-explore{margin:2px 0 8px;font-size:12px;color:#94a3b8;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -1019,15 +1021,17 @@ function escHtml(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace
 function wpSystemPrompt(){
   return `你是一位善于用「线段图」帮小学生拆解应用题的数学辅导老师。
 
-⚠️⚠️⚠️ 第一步（最关键）：几乎每道题都用「万能单轴图」type:"axis"！⚠️⚠️⚠️
+⚠️⚠️⚠️ 第一步（最关键）：默认用「书本风格多行线段图」type:"segment"！⚠️⚠️⚠️
 下面这张决策表是硬性规则：
 
 | 题目类型 | diagram.type 必须设为 |
 |---|---|
-| 绝大多数学题（速度/路程、部分-整体、求总数、比多少、倍、和差、和倍、差倍、归一归总、分数/百分数、相遇/追及、比较） | **"axis"**（默认，万能单轴图） |
-| 仅当「多步连续变化」：原有→取走→又给、先涨后跌那种每一步改写上一状态的题 | "timeline"（唯一兜底） |
+| 和差、和倍、差倍、比多少、部分-整体、倍数关系、归一归总、求总数、比较两个量 | **"segment"**（默认，书本风格多行线段图） |
+| 速度/路程、相遇/追及（需箭头表示运动方向） | "axis"（单轴图+箭头） |
+| 分数/百分数（需着色表示部分占整体） | "axis"（单轴图+着色） |
+| 仅当「多步连续变化」：原有→取走→又给、先涨后跌 | "timeline"（连续变化轴） |
 
-🚫 除上面第二种情况外，一律 type:"axis"，不要再用 trip / fraction / rows 等旧图型。
+🚫 凡是涉及两个或多个量的比较关系（和差倍），一律用 type:"segment"！
 
 1. 先用 1~2 句鼓励、引导的话开头（自然语言，不要 Markdown 符号）。
 2. 然后输出 \`\`\`json 代码块（严格合法、可 JSON.parse）：
@@ -1041,36 +1045,56 @@ function wpSystemPrompt(){
   "diagram": { ...按上表选对应类型... }
 }
 
-【axis 万能单轴图结构】——一条横轴 + 等分刻度 + 关键点 + 大括号 + 可选着色/箭头：
+【segment 书本风格多行线段图结构】——多行水平线段 + 左侧名称 + 上方份数标注 + 右侧大括号：
+{
+  "type":"segment",
+  "rows": [
+    {
+      "name": "甲",
+      "parts": [ {"value":12,"label":"12"}, {"value":12,"label":"12"}, {"value":12,"label":"12"}, {"value":12,"label":"12"} ],
+      "totalLabel": "48"
+    },
+    {
+      "name": "乙",
+      "parts": [ {"value":12,"label":"12"}, {"value":12,"label":"12"} ],
+      "totalLabel": "24"
+    }
+  ],
+  "diffs": [ {"rows":[0,1], "label":"共72"} ],
+  "caption": "数量关系式"
+}
+• rows：每行代表一个量（甲、乙等），左对齐排列。
+• parts：将该量的线段分成若干段，每段标注数值。未知量用 {"value":0,"label":"?","unknown":true} 表示。
+• totalLabel：该行总量标注（显示在线段右侧），未知量可标 "?" 并设 "unknown":true。
+• diffs：行间关系大括号，rows 指定涉及哪两行（索引从0开始），label 为关系文字（如"共72""多24""少12"）。
+
+【segment 示例】
+① 和差问题（甲乙共60，甲比乙多12，求各多少）：
+{"type":"segment","rows":[{"name":"甲","parts":[{"value":24,"label":"24"},{"value":12,"label":"12"}],"totalLabel":"48"},{"name":"乙","parts":[{"value":24,"label":"24"}],"totalLabel":"24"}],"diffs":[{"rows":[0,1],"label":"多12"}],"caption":"乙=(60-12)÷2=24，甲=24+12=36"}
+② 和倍问题（甲乙共60，甲是乙的3倍，求各多少）：
+{"type":"segment","rows":[{"name":"甲","parts":[{"value":15,"label":"15"},{"value":15,"label":"15"},{"value":15,"label":"15"}],"totalLabel":"45"},{"name":"乙","parts":[{"value":15,"label":"15"}],"totalLabel":"15"}],"diffs":[{"rows":[0,1],"label":"共60"}],"caption":"乙=60÷(3+1)=15，甲=15×3=45"}
+③ 差倍问题（甲比乙多24，甲是乙的3倍，求各多少）：
+{"type":"segment","rows":[{"name":"甲","parts":[{"value":12,"label":"12"},{"value":12,"label":"12"},{"value":12,"label":"12"}],"totalLabel":"36"},{"name":"乙","parts":[{"value":12,"label":"12"}],"totalLabel":"12"}],"diffs":[{"rows":[0,1],"label":"多24"}],"caption":"乙=24÷(3-1)=12，甲=12×3=36"}
+④ 归一问题（100块金砖，每箱同样多，4箱装完，每箱多少）：
+{"type":"segment","rows":[{"name":"共","parts":[{"value":25,"label":"25"},{"value":25,"label":"25"},{"value":25,"label":"25"},{"value":25,"label":"25"}],"totalLabel":"100"}],"caption":"100÷4=25"}
+⑤ 求未知（甲乙共72，甲是乙的2倍，求乙）：
+{"type":"segment","rows":[{"name":"甲","parts":[{"value":24,"label":"24"},{"value":24,"label":"24"}],"totalLabel":"?"},{"name":"乙","parts":[{"value":24,"label":"24"}],"totalLabel":"?"}],"diffs":[{"rows":[0,1],"label":"共72"}],"caption":"乙=72÷(2+1)=24"}
+
+【axis 单轴图结构】——仅用于速度/相遇追及/分数百分数：
 {
   "type":"axis",
   "axis": {"startLabel":"起点名","endLabel":"终点名","value":全程数值,"unit":"单位","ticks":等分数},
   "points":  [ {"at":0或0.5或1或绝对值,"label":"关键点文字","below":true} ],
   "braces":  [ {"from":0,"to":1,"label":"区间标注","side":"bottom或top","level":0,"color":"#ea580c"} ],
-  "shade":   [ {"from":0,"to":0.6,"color":"#2563eb"} ],          // 分数/百分数着色（可选）
-  "arrows":  [ {"from":0,"to":0.5,"color":"#2563eb","label":"甲 60米/分"} ],  // 移动/相遇箭头（可选）
+  "shade":   [ {"from":0,"to":0.6,"color":"#2563eb"} ],
+  "arrows":  [ {"from":0,"to":0.5,"color":"#2563eb","label":"甲 60米/分"} ],
   "caption": "数量关系式"
 }
-• at 位置：0~1 的分数（0=起点,1=终点,0.5=中点），或绝对值（会 ÷axis.value 自动定位）。
-• ticks：把横轴等分成几段（如 5 表示每「1份」对应 1 小时/1 个单位）。
-• braces：在指定区间画彩色大括号 + 文字（bottom 在轴下、top 在轴上）。**level（默认0）支持同一侧多层嵌套**：归一/归总题用 bottom 第0层标"共/箱数"、第1层标"每份"，top 第0层标"总数"。每层自动向外扩 22px。
 
-【axis 示例】
-① 速度题（甲、乙相距680千米，汽车5小时到中点，求时速）：
-{"type":"axis","axis":{"startLabel":"甲","endLabel":"乙","value":680,"unit":"千米","ticks":5},"points":[{"at":0,"label":"甲"},{"at":0.5,"label":"中点"},{"at":1,"label":"乙"}],"braces":[{"from":0,"to":1,"label":"680千米","side":"bottom","color":"#ef4444"},{"from":0,"to":0.5,"label":"5小时","side":"top","color":"#ec4899"}],"caption":"速度 = 路程 ÷ 时间"}
-② 相遇题（相距600米，甲60米/分、乙40米/分，几分相遇）：
-{"type":"axis","axis":{"startLabel":"甲地","endLabel":"乙地","value":600,"unit":"米"},"arrows":[{"from":0,"to":0.5,"color":"#2563eb","label":"甲60米/分"},{"from":1,"to":0.5,"color":"#ea580c","label":"乙40米/分"}],"points":[{"at":0.5,"label":"相遇点"}],"braces":[{"from":0,"to":0.5,"label":"甲走300","side":"bottom","color":"#2563eb"},{"from":0.5,"to":1,"label":"乙走300","side":"bottom","color":"#ea580c"}],"caption":"(60+40)×5=600"}
-③ 分数题（全班40人，男生占3/5）：
-{"type":"axis","axis":{"startLabel":"全班","endLabel":"","value":40,"unit":"人","ticks":5},"shade":[{"from":0,"to":0.6,"color":"#2563eb"}],"braces":[{"from":0,"to":1,"label":"全班40人","side":"top","color":"#ef4444"},{"from":0,"to":0.6,"label":"男生24人","side":"bottom","color":"#2563eb"}],"caption":"40×3/5=24"}
-④ 部分-整体（乙12，甲是乙的5倍）：
-{"type":"axis","axis":{"startLabel":"乙","endLabel":"甲","value":60,"unit":"棵","ticks":5},"points":[{"at":0,"label":"乙 12"},{"at":1,"label":"甲 60"}],"braces":[{"from":0,"to":0.2,"label":"1份12","side":"bottom","color":"#3b82f6"},{"from":0,"to":1,"label":"甲比乙多48","side":"top","color":"#ef4444"}],"caption":"12×5=60"}
-⑤ 归一/归总（100块金砖，每箱同样多，4箱装完，每箱多少）：
-{"type":"axis","axis":{"startLabel":"","endLabel":"","value":100,"unit":"块","ticks":4},"braces":[{"from":0,"to":1,"label":"共100块","side":"top","level":0,"color":"#ef4444"},{"from":0,"to":1,"label":"4箱","side":"bottom","level":0,"color":"#ea580c"},{"from":0,"to":0.25,"label":"25","side":"bottom","level":1,"color":"#2563eb"},{"from":0.25,"to":0.5,"label":"25","side":"bottom","level":1,"color":"#2563eb"},{"from":0.5,"to":0.75,"label":"25","side":"bottom","level":1,"color":"#2563eb"},{"from":0.75,"to":1,"label":"25","side":"bottom","level":1,"color":"#2563eb"}],"caption":"100÷4=25"}
-
-通用：开头用自然语言不要 Markdown；只有「多步连续变化」题才用 timeline，其余一律 axis；不适合画图时 diagram 可省只给 analysis。`;
+通用：开头用自然语言不要 Markdown；和差倍类一律 segment；速度/相遇/分数用 axis；多步连续变化用 timeline；不适合画图时 diagram 可省只给 analysis。`;
 }
 function buildWPPrompt(text){
-  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出线段图：\n\n${text}\n\n⚠️ 默认用「万能单轴图」{"type":"axis",...}（一条横轴+刻度+大括号，at用0~1分数或绝对值定位），覆盖速度/部分整体/倍/和差/分数/相遇追及等绝大多数题。\n只有「多步连续变化」（原有→拿走→又给）才用 {"type":"timeline","stages":[...]} 兜底。\n输出格式：先用 1~2 句自然语言引导，再输出 \`\`\`json 块（含 analysis + diagram）。`;
+  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出线段图：\n\n${text}\n\n⚠️ 默认用「书本风格多行线段图」{"type":"segment","rows":[...]}（多行水平线段+左侧名称+上方份数标注+右侧大括号），覆盖和差/和倍/差倍/比多少/部分整体/归一归总等绝大多数题。\n速度/相遇追及用 {"type":"axis",...}（箭头），分数/百分数用 {"type":"axis",...}（着色）。\n多步连续变化用 {"type":"timeline","stages":[...]} 兜底。\n输出格式：先用 1~2 句自然语言引导，再输出 \`\`\`json 块（含 analysis + diagram）。`;
 }
 function parseWP(ans){
   const m = ans.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -1469,61 +1493,143 @@ function buildTimelineCanvas(dia,playground){
   return result;
 }
 
-/* --- segment 多行线段图（Canvas）--- */
+/* --- segment 书本风格多行线段图（Canvas）--- */
 function buildSegmentCanvas(dia,playground){
   if(!dia||!Array.isArray(dia.rows)||!dia.rows.length) return document.createElement('div');
   const rows=dia.rows;
-  const labelW=88,plotW=240,rowH=44,gap=30,top=22,left=10,rightPad=180;
+  // 书本风格参数：更大的留白、清晰的间距
+  const labelW=52,plotW=340,rowH=56,gap=40,top=34,left=12,rightPad=130;
   const totals=rows.map(r=>(r.parts||[]).reduce((s,p)=>s+(+p.value||0),0));
   const globalMax=Math.max.apply(null,totals.concat([1]));
-  const H=top+rows.length*rowH+(rows.length-1)*gap+30;
+  const H=top+rows.length*rowH+(rows.length-1)*gap+50;
   const W=left+labelW+plotW+rightPad;
   const x0=left+labelW;
   const yOf=ri=>top+ri*(rowH+gap)+rowH/2;
-  const fallbackColors=['#667eea','#ea580c','#db2777','#059669','#7c3aed'];
   let animProgress=0;
 
   function draw(){
     const {cv,ctx}=mtCanvas(W,H);
+    // 书本风格：纯白背景
+    ctx.fillStyle='#ffffff';
+    ctx.fillRect(0,0,W,H);
+
     rows.forEach((r,ri)=>{
-      const total=totals[ri]||1;
+      const total=totals[ri]||0;
       const y=yOf(ri);
       const rowW=plotW*total/globalMax*animProgress;
       const rowRight=x0+rowW;
-      mtText(ctx,r.name||'',left,y+4,{size:19,weight:700,color:'#1f2937',align:'left',baseline:'middle'});
-      ctx.strokeStyle='#1f2937';ctx.lineWidth=2.5;ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(rowRight,y);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x0,y-7);ctx.lineTo(x0,y+7);ctx.stroke();
-      if(animProgress>0.9){ctx.beginPath();ctx.moveTo(rowRight,y-7);ctx.lineTo(rowRight,y+7);ctx.stroke();}
+
+      // 左侧名称（书本风格：黑色粗体）
+      mtText(ctx,r.name||'',left+labelW-8,y,{size:16,weight:700,color:'#000000',align:'right',baseline:'middle'});
+
+      // 主线段（书本风格：黑色实线，butt 线帽）
+      ctx.strokeStyle='#000000';
+      ctx.lineWidth=2;
+      ctx.lineCap='butt';
+      ctx.beginPath();
+      ctx.moveTo(x0,y);
+      ctx.lineTo(rowRight,y);
+      ctx.stroke();
+
+      // 左端点竖线（书本风格：稍长）
+      ctx.beginPath();
+      ctx.moveTo(x0,y-9);
+      ctx.lineTo(x0,y+9);
+      ctx.stroke();
+
+      // 右端点竖线
+      if(animProgress>0.9){
+        ctx.beginPath();
+        ctx.moveTo(rowRight,y-9);
+        ctx.lineTo(rowRight,y+9);
+        ctx.stroke();
+      }
+
+      // 各部分：分隔线 + 上方标注
       let x=x0;
       (r.parts||[]).forEach((p,pi)=>{
-        const w=plotW*(+p.value||0)/globalMax*animProgress;
-        if(w<2){x+=plotW*(+p.value||0)/globalMax;return;}
-        if(pi>0){ctx.strokeStyle='#9ca3af';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,y-6);ctx.lineTo(x,y+6);ctx.stroke();}
-        const color=p.color||fallbackColors[pi%fallbackColors.length];
-        if(p.label&&animProgress>0.8)mtText(ctx,p.label,x+w/2,y-12,{size:18,weight:700,color,align:'center',baseline:'middle'});
-        x+=plotW*(+p.value||0)/globalMax;
+        const partVal=+p.value||0;
+        const w=plotW*partVal/globalMax*animProgress;
+        if(w<2){x+=plotW*partVal/globalMax;return;}
+
+        // 分隔竖线（非首段）
+        if(pi>0 && animProgress>0.75){
+          ctx.strokeStyle='#000000';
+          ctx.lineWidth=1.5;
+          ctx.beginPath();
+          ctx.moveTo(x,y-7);
+          ctx.lineTo(x,y+7);
+          ctx.stroke();
+        }
+
+        // 上方份数标注（书本风格：黑色，居中）
+        if(p.label && animProgress>0.8){
+          const labelColor = p.unknown ? '#dc2626' : '#000000';
+          mtText(ctx,p.label,x+w/2,y-16,{size:14,weight:600,color:labelColor,align:'center',baseline:'middle'});
+        }
+
+        // 未知量用红色"?"标注（书本常见标记）
+        if(p.unknown && animProgress>0.9 && !p.label){
+          mtText(ctx,'?',x+w/2,y-16,{size:20,weight:700,color:'#dc2626',align:'center',baseline:'middle'});
+        }
+
+        x+=plotW*partVal/globalMax;
       });
-      if(r.caption&&animProgress>0.9)mtText(ctx,r.caption,x0,y+22,{size:15,color:'#6b7280',align:'left',baseline:'hanging'});
+
+      // 右侧总量标注（书本风格：右侧标总量）
+      if(animProgress>0.9){
+        const totalLabel = r.totalLabel || (total>0 ? String(total) : '');
+        if(totalLabel){
+          const tColor = r.unknown ? '#dc2626' : '#000000';
+          mtText(ctx,totalLabel,rowRight+10,y,{size:14,weight:700,color:tColor,align:'left',baseline:'middle'});
+        }
+      }
+
+      // 下方说明（可选）
+      if(r.caption && animProgress>0.9){
+        mtText(ctx,r.caption,x0,y+18,{size:13,color:'#666666',align:'left',baseline:'top'});
+      }
     });
+
+    // 右侧大括号：标注行间关系（和/差/倍）
     if(animProgress>0.85){
       (dia.diffs||[]).forEach(diff=>{
         const i=diff.rows&&diff.rows[0],j=diff.rows&&diff.rows[1];
         if(i==null||j==null||i<0||j<0||i>=rows.length||j>=rows.length)return;
         const yi=yOf(i),yj=yOf(j);
         const xi=x0+plotW*(totals[i]||0)/globalMax,xj=x0+plotW*(totals[j]||0)/globalMax;
-        const maxRight=Math.max(xi,xj),bx=maxRight+18,my=(yi+yj)/2;
-        mtBrace(ctx,bx,bx,my,'bottom',null,'#ea580c'); // 简化：用文字标注
-        ctx.strokeStyle='#ea580c';ctx.lineWidth=1.8;ctx.lineJoin='round';
-        ctx.beginPath();ctx.moveTo(bx,yi);ctx.lineTo(bx+5,yi);ctx.quadraticCurveTo(bx+12,yi,bx+12,my);ctx.quadraticCurveTo(bx+12,yj,bx+5,yj);ctx.lineTo(bx,yj);ctx.stroke();
-        mtText(ctx,diff.label||'',bx+22,my+4,{size:18,weight:700,color:'#ea580c',align:'left',baseline:'middle'});
+        const maxRight=Math.max(xi,xj);
+        const bx=maxRight+45; // 避开右侧总量标注
+        const my=(yi+yj)/2;
+
+        // 书本风格花括号（红色简洁）
+        ctx.strokeStyle='#dc2626';
+        ctx.lineWidth=1.5;
+        ctx.lineJoin='round';
+        ctx.beginPath();
+        ctx.moveTo(bx,yi);
+        ctx.lineTo(bx+5,yi);
+        ctx.quadraticCurveTo(bx+12,yi,bx+12,my);
+        ctx.quadraticCurveTo(bx+12,yj,bx+5,yj);
+        ctx.lineTo(bx,yj);
+        ctx.stroke();
+
+        // 关系标签（红色粗体）
+        mtText(ctx,diff.label||'',bx+18,my,{size:15,weight:700,color:'#dc2626',align:'left',baseline:'middle'});
       });
     }
+
+    // 标题/说明（可选）
+    if(dia.caption && animProgress>0.9){
+      mtText(ctx,dia.caption,W/2,H-12,{size:14,color:'#666666',align:'center',baseline:'bottom'});
+    }
+
     return cv;
   }
-  const wrap=document.createElement('div');wrap.className='mt-canvas-wrap';
+
+  const wrap=document.createElement('div');wrap.className='mt-canvas-wrap textbook-seg';
   let canvasEl=draw();wrap.appendChild(canvasEl);
-  mtAnimate(700,t=>{animProgress=t;const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;});
+  mtAnimate(800,t=>{animProgress=t;const nc=draw();wrap.replaceChild(nc,canvasEl);canvasEl=nc;});
   const result=document.createElement('div');result.appendChild(wrap);return result;
 }
 
@@ -1655,7 +1761,7 @@ function renderInteractiveDiagram(dia){
     +'<span class="mt-streak">'+(mtScore.streak>=2?'🔥'+mtScore.streak+'连击':'')+'</span>';
   playground.appendChild(scoreBar);
   // 画图区
-  const builders={axis:buildAxisCanvas,timeline:buildTimelineCanvas,trip:buildTripCanvas,fraction:buildFractionCanvas};
+  const builders={segment:buildSegmentCanvas,axis:buildAxisCanvas,timeline:buildTimelineCanvas,trip:buildTripCanvas,fraction:buildFractionCanvas};
   const fn=builders[dia.type]||buildSegmentCanvas;
   const content=fn(dia,playground);
   playground.appendChild(content);
