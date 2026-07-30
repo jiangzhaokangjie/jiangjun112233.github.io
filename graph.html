@@ -150,7 +150,7 @@
   .seg-name{fill:#000000;font-size:16px;dominant-baseline:middle;font-weight:700}
   .seg-part-label{font-size:14px;font-weight:600;text-anchor:middle;dominant-baseline:middle}
   /* —— 书本风格线段图 —— */
-  .mt-canvas-wrap.textbook-seg{background:#fefefe;border:1px solid #e5e7eb;border-radius:8px;padding:12px 8px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .mt-canvas-wrap.textbook-seg{background:#ffffff;border:none;border-radius:8px;padding:12px 8px;box-shadow:none}
   /* —— math-teacher 风格交互式可视化 —— */
   .wp-diag-host{margin:2px 0}
   .wp-explore{margin:2px 0 8px;font-size:12px;color:#94a3b8;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -169,6 +169,7 @@
   .mt-progress-track{flex:1;min-width:80px;height:8px;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden}
   .mt-progress-fill{height:100%;background:linear-gradient(90deg,#4CAF50,#8BC34A);border-radius:4px;transition:width .4s ease;width:0%}
   .mt-canvas-wrap{background:#fff;border-radius:10px;padding:6px;overflow:hidden;position:relative}
+  .mt-playground.textbook-playground{background:transparent;border:none;border-radius:0;padding:0;backdrop-filter:none}
   .mt-canvas-wrap canvas{display:block;width:100%;height:auto;cursor:default;touch-action:none}
   .mt-canvas-wrap canvas.mt-draggable{cursor:grab}
   .mt-canvas-wrap canvas.mt-dragging{cursor:grabbing}
@@ -1239,6 +1240,39 @@ function mtBrace(ctx,x1,x2,y,side,label,color){
   ctx.restore();
   if(label) mtText(ctx,label,(x1+x2)/2,by+(side==='top'?dip-5:-dip+13),{size:15,weight:700,color:color||'#ea580c',align:'center',baseline:'middle'});
 }
+/* Canvas 课本风格横向大括号 */
+function mtTextbookBrace(ctx,x1,x2,y,side,label,color){
+  const top=side==='top';
+  const h=12,mid=(x1+x2)/2;
+  ctx.save();
+  ctx.strokeStyle=color||'#b04a76';
+  ctx.lineWidth=1.8;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  ctx.beginPath();
+  if(top){
+    ctx.moveTo(x1,y+h);
+    ctx.quadraticCurveTo(x1,y,x1+h,y);
+    ctx.lineTo(mid-h,y);
+    ctx.quadraticCurveTo(mid,y,mid,y-h/2);
+    ctx.quadraticCurveTo(mid,y,mid+h,y);
+    ctx.lineTo(x2-h,y);
+    ctx.quadraticCurveTo(x2,y,x2,y+h);
+  }else{
+    ctx.moveTo(x1,y-h);
+    ctx.quadraticCurveTo(x1,y,x1+h,y);
+    ctx.lineTo(mid-h,y);
+    ctx.quadraticCurveTo(mid,y,mid,y+h/2);
+    ctx.quadraticCurveTo(mid,y,mid+h,y);
+    ctx.lineTo(x2-h,y);
+    ctx.quadraticCurveTo(x2,y,x2,y-h);
+  }
+  ctx.stroke();
+  ctx.restore();
+  if(label){
+    mtText(ctx,label,mid,top?y-12:y+20,{size:15,weight:700,color:'#111827',align:'center',baseline:'middle'});
+  }
+}
 /* Canvas 箭头 */
 function mtArrow(ctx,x1,y1,x2,y2,color,width){
   ctx.save();
@@ -1498,7 +1532,7 @@ function buildSegmentCanvas(dia,playground){
   if(!dia||!Array.isArray(dia.rows)||!dia.rows.length) return document.createElement('div');
   const rows=dia.rows;
   // 书本风格参数：更大的留白、清晰的间距
-  const labelW=52,plotW=340,rowH=56,gap=40,top=34,left=12,rightPad=130;
+  const labelW=66,plotW=330,rowH=68,gap=38,top=44,left=10,rightPad=92;
   const totals=rows.map(r=>(r.parts||[]).reduce((s,p)=>s+(+p.value||0),0));
   const globalMax=Math.max.apply(null,totals.concat([1]));
   const H=top+rows.length*rowH+(rows.length-1)*gap+50;
@@ -1522,16 +1556,16 @@ function buildSegmentCanvas(dia,playground){
       // 左侧名称（书本风格：黑色粗体）
       mtText(ctx,r.name||'',left+labelW-8,y,{size:16,weight:700,color:'#000000',align:'right',baseline:'middle'});
 
-      // 主线段（书本风格：黑色实线，butt 线帽）
-      ctx.strokeStyle='#000000';
-      ctx.lineWidth=2;
+      // 主线段（课本风格：蓝色线段）
+      ctx.strokeStyle='#2f7fb8';
+      ctx.lineWidth=2.2;
       ctx.lineCap='butt';
       ctx.beginPath();
       ctx.moveTo(x0,y);
       ctx.lineTo(rowRight,y);
       ctx.stroke();
 
-      // 左端点竖线（书本风格：稍长）
+      // 左端点竖线（课本风格：蓝色端点）
       ctx.beginPath();
       ctx.moveTo(x0,y-9);
       ctx.lineTo(x0,y+9);
@@ -1554,15 +1588,15 @@ function buildSegmentCanvas(dia,playground){
 
         // 分隔竖线（非首段）
         if(pi>0 && animProgress>0.75){
-          ctx.strokeStyle='#000000';
-          ctx.lineWidth=1.5;
+          ctx.strokeStyle='#2f7fb8';
+          ctx.lineWidth=1.8;
           ctx.beginPath();
           ctx.moveTo(x,y-7);
           ctx.lineTo(x,y+7);
           ctx.stroke();
         }
 
-        // 上方份数标注（书本风格：黑色，居中）
+        // 上方份数标注（课本风格：黑色，居中）
         if(p.label && animProgress>0.8){
           const labelColor = p.unknown ? '#dc2626' : '#000000';
           mtText(ctx,p.label,x+w/2,y-16,{size:14,weight:600,color:labelColor,align:'center',baseline:'middle'});
@@ -1576,12 +1610,11 @@ function buildSegmentCanvas(dia,playground){
         x+=plotW*partVal/globalMax;
       });
 
-      // 右侧总量标注（书本风格：右侧标总量）
+      // 总量标注（课本风格：用紫红色上方括号标出整段）
       if(animProgress>0.9){
         const totalLabel = r.totalLabel || (total>0 ? String(total) : '');
         if(totalLabel){
-          const tColor = r.unknown ? '#dc2626' : '#000000';
-          mtText(ctx,totalLabel,rowRight+10,y,{size:14,weight:700,color:tColor,align:'left',baseline:'middle'});
+          mtTextbookBrace(ctx,x0,rowRight,y-22,'top',totalLabel,'#b04a76');
         }
       }
 
@@ -1591,7 +1624,7 @@ function buildSegmentCanvas(dia,playground){
       }
     });
 
-    // 右侧大括号：标注行间关系（和/差/倍）
+    // 右侧大括号：标注行间关系（和/差/倍），沿用课本紫红色
     if(animProgress>0.85){
       (dia.diffs||[]).forEach(diff=>{
         const i=diff.rows&&diff.rows[0],j=diff.rows&&diff.rows[1];
@@ -1602,8 +1635,8 @@ function buildSegmentCanvas(dia,playground){
         const bx=maxRight+45; // 避开右侧总量标注
         const my=(yi+yj)/2;
 
-        // 书本风格花括号（红色简洁）
-        ctx.strokeStyle='#dc2626';
+        // 课本风格花括号（紫红色简洁）
+        ctx.strokeStyle='#b04a76';
         ctx.lineWidth=1.5;
         ctx.lineJoin='round';
         ctx.beginPath();
@@ -1614,8 +1647,8 @@ function buildSegmentCanvas(dia,playground){
         ctx.lineTo(bx,yj);
         ctx.stroke();
 
-        // 关系标签（红色粗体）
-        mtText(ctx,diff.label||'',bx+18,my,{size:15,weight:700,color:'#dc2626',align:'left',baseline:'middle'});
+        // 关系标签
+        mtText(ctx,diff.label||'',bx+18,my,{size:15,weight:700,color:'#111827',align:'left',baseline:'middle'});
       });
     }
 
@@ -1751,23 +1784,28 @@ function renderInteractiveDiagram(dia){
   if(!dia||!dia.type) return null;
 
   // 创建 playground 容器
-  const playground=document.createElement('div'); playground.className='mt-playground';
-  // 积分栏
-  const scoreBar=document.createElement('div'); scoreBar.className='mt-score-bar';
-  const info=mtLevelInfo(mtScore.total);
-  scoreBar.innerHTML='<span class="mt-score">⭐ '+mtScore.total+'</span>'
-    +'<span class="mt-level">Lv.'+info.level+'</span>'
-    +'<div class="mt-progress-track"><div class="mt-progress-fill" style="width:'+Math.round(info.progress*100)+'%"></div></div>'
-    +'<span class="mt-streak">'+(mtScore.streak>=2?'🔥'+mtScore.streak+'连击':'')+'</span>';
-  playground.appendChild(scoreBar);
+  const isSegment=dia.type==='segment'||(dia.rows&&Array.isArray(dia.rows));
+  const playground=document.createElement('div'); playground.className=isSegment?'mt-playground textbook-playground':'mt-playground';
+  if(!isSegment){
+    // 积分栏
+    const scoreBar=document.createElement('div'); scoreBar.className='mt-score-bar';
+    const info=mtLevelInfo(mtScore.total);
+    scoreBar.innerHTML='<span class="mt-score">⭐ '+mtScore.total+'</span>'
+      +'<span class="mt-level">Lv.'+info.level+'</span>'
+      +'<div class="mt-progress-track"><div class="mt-progress-fill" style="width:'+Math.round(info.progress*100)+'%"></div></div>'
+      +'<span class="mt-streak">'+(mtScore.streak>=2?'🔥'+mtScore.streak+'连击':'')+'</span>';
+    playground.appendChild(scoreBar);
+  }
   // 画图区
   const builders={segment:buildSegmentCanvas,axis:buildAxisCanvas,timeline:buildTimelineCanvas,trip:buildTripCanvas,fraction:buildFractionCanvas};
   const fn=builders[dia.type]||buildSegmentCanvas;
   const content=fn(dia,playground);
   playground.appendChild(content);
-  // 反馈区
-  const fb=document.createElement('div'); fb.className='mt-feedback'; fb.textContent='💡 拖动蓝色圆点探索数值，或调整滑块看数量关系变化';
-  playground.appendChild(fb);
+  if(!isSegment){
+    // 反馈区
+    const fb=document.createElement('div'); fb.className='mt-feedback'; fb.textContent='💡 拖动蓝色圆点探索数值，或调整滑块看数量关系变化';
+    playground.appendChild(fb);
+  }
 
   return playground;
 }
