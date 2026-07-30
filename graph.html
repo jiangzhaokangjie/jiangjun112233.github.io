@@ -1028,7 +1028,7 @@ function wpSystemPrompt(){
 | 题目类型 | diagram.type 必须设为 |
 |---|---|
 | 和差、和倍、差倍、比多少、部分-整体、倍数关系、归一归总、求总数、比较两个量 | **"segment"**（默认，书本风格多行线段图） |
-| 速度/路程、相遇/追及（需箭头表示运动方向） | "axis"（单轴图+箭头） |
+| 速度/路程、行程、中点、桥长、相遇/追及 | **"axis"**（课本单条线段图，不能画成多行 segment） |
 | 分数/百分数（需着色表示部分占整体） | "axis"（单轴图+着色） |
 | 仅当「多步连续变化」：原有→取走→又给、先涨后跌 | "timeline"（连续变化轴） |
 
@@ -1092,10 +1092,14 @@ function wpSystemPrompt(){
   "caption": "数量关系式"
 }
 
+【axis 示例：速度题，必须画成一条线段】
+题目：甲、乙两地相距680千米，汽车5小时行到中点，求速度。
+{"type":"axis","axis":{"startLabel":"甲","endLabel":"乙","value":680,"unit":"千米","ticks":10},"points":[{"at":0.5,"label":"中点","below":false}],"braces":[{"from":0,"to":0.125,"label":"? 千米","side":"top","level":0},{"from":0,"to":0.5,"label":"5小时","side":"bottom","level":0},{"from":0,"to":1,"label":"680 千米","side":"bottom","level":1}],"caption":"680÷2÷5=68（千米/时）"}
+
 通用：开头用自然语言不要 Markdown；和差倍类一律 segment；速度/相遇/分数用 axis；多步连续变化用 timeline；不适合画图时 diagram 可省只给 analysis。`;
 }
 function buildWPPrompt(text){
-  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出线段图：\n\n${text}\n\n⚠️ 默认用「书本风格多行线段图」{"type":"segment","rows":[...]}（多行水平线段+左侧名称+上方份数标注+右侧大括号），覆盖和差/和倍/差倍/比多少/部分整体/归一归总等绝大多数题。\n速度/相遇追及用 {"type":"axis",...}（箭头），分数/百分数用 {"type":"axis",...}（着色）。\n多步连续变化用 {"type":"timeline","stages":[...]} 兜底。\n输出格式：先用 1~2 句自然语言引导，再输出 \`\`\`json 块（含 analysis + diagram）。`;
+  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出线段图：\n\n${text}\n\n⚠️ 默认用「书本风格多行线段图」{"type":"segment","rows":[...]}（多行水平线段+左侧名称+上方份数标注+右侧大括号），覆盖和差/和倍/差倍/比多少/部分整体/归一归总等绝大多数题。\n速度/路程/中点/桥长/相遇追及必须用 {"type":"axis",...}，画成课本里的单条线段图，不要画成多行 segment。\n分数/百分数也用 {"type":"axis",...}（着色）。多步连续变化用 {"type":"timeline","stages":[...]} 兜底。\n输出格式：先用 1~2 句自然语言引导，再输出 \`\`\`json 块（含 analysis + diagram）。`;
 }
 function parseWP(ans){
   const m = ans.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -1288,7 +1292,7 @@ function mtArrow(ctx,x1,y1,x2,y2,color,width){
   ctx.restore();
 }
 
-/* --- axis 万能单轴图（Canvas + 拖拽 + 动画）--- */
+/* --- axis 课本风格单轴线段图（Canvas）--- */
 function buildAxisCanvas(dia,playground){
   const ax=dia.axis||{};
   const value=ax.value!=null?+ax.value:1;
@@ -1298,55 +1302,60 @@ function buildAxisCanvas(dia,playground){
   const arrows=Array.isArray(dia.arrows)?dia.arrows:[];
   const ticks=ax.ticks!=null?+ax.ticks:0;
 
-  const x0=30, plotW=396, W=x0+plotW+30;
+  const x0=58, plotW=360, W=x0+plotW+64;
   const axisY=92;
   const pos=at=>{let f=+at; if(value>0&&f>1)f=f/value; if(f<0)f=0; if(f>1)f=1; return x0+plotW*f;};
 
   let maxB=0,maxT=0;
   braces.forEach(b=>{const lv=+b.level||0; if((b.side||'bottom')==='top')maxT=Math.max(maxT,lv); else maxB=Math.max(maxB,lv);});
-  const STEP=22,BASE=14;
-  const bottomGap=maxB>0?(BASE+maxB*STEP+34):44;
-  const H=axisY+(dia.caption?bottomGap+24:bottomGap+6);
+  const STEP=28,BASE=30;
+  const topGap=maxT>0?(BASE+maxT*STEP+26):52;
+  const bottomGap=maxB>0?(BASE+maxB*STEP+36):58;
+  const H=axisY+bottomGap+(dia.caption?24:8);
 
   let animProgress=0; // 0→1 入场动画
   let curK=1; // 滑块缩放
   const handles=points.map(p=>({at:p.at,label:p.label||'点',x:pos(p.at),dragging:false}));
+  const textbook=playground&&playground.classList&&playground.classList.contains('textbook-playground');
 
   function draw(){
     const {cv,ctx}=mtCanvas(W,H);
     const k=curK;
     const val=value*k;
     const posK=at=>{let f=+at; if(value>0&&f>1)f=f/value; if(f<0)f=0; if(f>1)f=1; return x0+plotW*f;};
+    ctx.fillStyle='#ffffff';
+    ctx.fillRect(0,0,W,H);
     // 着色
     shades.forEach(s=>{
       const x1=posK(s.from),x2=posK(s.to);
-      ctx.fillStyle=s.color||'#2563eb'; ctx.globalAlpha=0.25;
+      ctx.fillStyle=s.color||'#2f7fb8'; ctx.globalAlpha=0.18;
       ctx.fillRect(Math.min(x1,x2),axisY-13,Math.abs(x2-x1),26); ctx.globalAlpha=1;
     });
-    // 横轴
-    ctx.strokeStyle='#1f2937'; ctx.lineWidth=3.4; ctx.lineCap='round';
+    // 横轴（课本风格蓝色线段）
+    ctx.strokeStyle='#2f7fb8'; ctx.lineWidth=2.3; ctx.lineCap='butt';
     ctx.beginPath(); ctx.moveTo(x0,axisY); ctx.lineTo(x0+plotW*animProgress,axisY); ctx.stroke();
     if(animProgress>0.95){
-      ctx.lineWidth=2.6;
+      ctx.lineWidth=2.1;
       ctx.beginPath();ctx.moveTo(x0,axisY-7);ctx.lineTo(x0,axisY+7);ctx.stroke();
       ctx.beginPath();ctx.moveTo(x0+plotW,axisY-7);ctx.lineTo(x0+plotW,axisY+7);ctx.stroke();
     }
     // 起止标签
-    if(ax.startLabel&&animProgress>0.5) mtText(ctx,ax.startLabel,x0,axisY+24,{size:13,weight:600,color:'#1f2937',align:'center',baseline:'top'});
-    if(ax.endLabel&&animProgress>0.9) mtText(ctx,ax.endLabel,x0+plotW,axisY+24,{size:13,weight:600,color:'#1f2937',align:'center',baseline:'top'});
+    if(ax.startLabel&&animProgress>0.5) mtText(ctx,ax.startLabel,x0-12,axisY,{size:16,weight:700,color:'#111827',align:'right',baseline:'middle'});
+    if(ax.endLabel&&animProgress>0.9) mtText(ctx,ax.endLabel,x0+plotW+12,axisY,{size:16,weight:700,color:'#111827',align:'left',baseline:'middle'});
     // 刻度
-    if(ticks>0&&animProgress>0.7){ctx.strokeStyle='#9ca3af';ctx.lineWidth=1.4;for(let i=0;i<=ticks;i++){const tx=x0+plotW*i/ticks;ctx.beginPath();ctx.moveTo(tx,axisY-5);ctx.lineTo(tx,axisY+5);ctx.stroke();}}
-    // 关键点 + 手柄
+    if(ticks>0&&animProgress>0.7){ctx.strokeStyle='#2f7fb8';ctx.lineWidth=1.8;for(let i=0;i<=ticks;i++){const tx=x0+plotW*i/ticks;ctx.beginPath();ctx.moveTo(tx,axisY-7);ctx.lineTo(tx,axisY+7);ctx.stroke();}}
+    // 关键点
     if(animProgress>0.8){
       handles.forEach(h=>{
         const x=posK(h.at);
-        ctx.strokeStyle='#1f2937';ctx.lineWidth=1.8;
+        ctx.strokeStyle='#2f7fb8';ctx.lineWidth=2;
         ctx.beginPath();ctx.moveTo(x,axisY-7);ctx.lineTo(x,axisY+7);ctx.stroke();
-        // 手柄圆点
-        ctx.fillStyle=h.dragging?'#1d4ed8':'#667eea';
-        ctx.strokeStyle='#fff';ctx.lineWidth=2.5;
-        ctx.beginPath();ctx.arc(x,axisY,h.dragging?12:9,0,2*Math.PI);ctx.fill();ctx.stroke();
-        if(h.label) mtText(ctx,h.label,x,axisY+24,{size:13,weight:600,color:'#1f2937',align:'center',baseline:'top'});
+        if(!textbook){
+          ctx.fillStyle=h.dragging?'#1d4ed8':'#667eea';
+          ctx.strokeStyle='#fff';ctx.lineWidth=2.5;
+          ctx.beginPath();ctx.arc(x,axisY,h.dragging?12:9,0,2*Math.PI);ctx.fill();ctx.stroke();
+        }
+        if(h.label) mtText(ctx,h.label,x,(h.below?axisY+24:axisY-20),{size:15,weight:700,color:'#111827',align:'center',baseline:h.below?'top':'bottom'});
       });
     }
     // 箭头
@@ -1355,39 +1364,40 @@ function buildAxisCanvas(dia,playground){
         const prog=Math.min(1,Math.max(0,(animProgress-0.6)*2.5-idx*0.2));
         if(prog<=0)return;
         const x1=posK(a.from),x2=posK(a.from)+(posK(a.to)-posK(a.from))*prog;
-        const ay=axisY-30,col=a.color||'#2563eb';
+        const ay=axisY-34,col=a.color||'#b04a76';
         mtArrow(ctx,x1,ay,x2,ay,col,3);
         if(prog>0.9&&a.label) mtText(ctx,a.label,(posK(a.from)+posK(a.to))/2,ay-8,{size:15,weight:700,color:col,align:'center',baseline:'middle'});
       });
     }
-    // 大括号
+    // 大括号（课本紫红色）
     if(animProgress>0.85){
       braces.forEach(b=>{
         const x1=posK(b.from),x2=posK(b.to),top=(b.side||'bottom')==='top',lv=+b.level||0,off=BASE+lv*STEP;
-        mtBrace(ctx,x1,x2,axisY+(top?-off:off),top,b.label,b.color||'#ea580c');
+        mtTextbookBrace(ctx,x1,x2,axisY+(top?-off:off),top?'top':'bottom',b.label,b.color||'#b04a76');
       });
     }
-    // 总量
+    // 说明
     if(animProgress>0.9){
       const displayVal=Math.round(val*100)/100;
-      mtText(ctx,String(displayVal)+(ax.unit?(' '+ax.unit):''),x0+plotW/2,axisY+bottomGap,{size:15,color:'#6b7280',align:'center',baseline:'top'});
-      if(dia.caption) mtText(ctx,dia.caption,x0+plotW/2,axisY+bottomGap+18,{size:15,color:'#6b7280',align:'center',baseline:'top'});
+      if(!textbook&&ax.value!=null) mtText(ctx,String(displayVal)+(ax.unit?(' '+ax.unit):''),x0+plotW/2,axisY+bottomGap,{size:15,color:'#6b7280',align:'center',baseline:'top'});
+      if(dia.caption) mtText(ctx,dia.caption,x0+plotW/2,axisY+bottomGap+8,{size:13,color:'#666666',align:'center',baseline:'top'});
     }
     return cv;
   }
 
-  const wrap=document.createElement('div'); wrap.className='mt-canvas-wrap';
+  const wrap=document.createElement('div'); wrap.className=textbook?'mt-canvas-wrap textbook-seg':'mt-canvas-wrap';
   let canvasEl=draw(); wrap.appendChild(canvasEl);
 
   // 拖拽交互
   let dragIdx=-1;
-  canvasEl.classList.add('mt-draggable');
+  if(!textbook) canvasEl.classList.add('mt-draggable');
   function getMouseX(e){
     const rect=canvasEl.getBoundingClientRect();
     const ratio=(e.clientX-rect.left)/rect.width;
     return ratio*W;
   }
   canvasEl.addEventListener('pointerdown',e=>{
+    if(textbook)return;
     const mx=getMouseX(e),my=(e.clientY-canvasEl.getBoundingClientRect().top)/canvasEl.getBoundingClientRect().height*H;
     for(let i=0;i<handles.length;i++){
       const hx=pos(handles[i].at);
@@ -1424,7 +1434,7 @@ function buildAxisCanvas(dia,playground){
 
   // 数值探索滑块
   let ctrl=null;
-  if(ax.value!=null){
+  if(ax.value!=null&&!textbook){
     ctrl=document.createElement('div'); ctrl.className='mt-controls';
     ctrl.innerHTML='<span style="font-size:12px;color:#94a3b8">🔍 数值探索</span><input type="range" min="0.5" max="2" step="0.1" value="1"><span class="mt-val">1.0×</span>';
     const range=ctrl.querySelector('input'),valEl=ctrl.querySelector('.mt-val');
@@ -1784,9 +1794,9 @@ function renderInteractiveDiagram(dia){
   if(!dia||!dia.type) return null;
 
   // 创建 playground 容器
-  const isSegment=dia.type==='segment'||(dia.rows&&Array.isArray(dia.rows));
-  const playground=document.createElement('div'); playground.className=isSegment?'mt-playground textbook-playground':'mt-playground';
-  if(!isSegment){
+  const isTextbook=dia.type==='segment'||dia.type==='axis'||(dia.rows&&Array.isArray(dia.rows));
+  const playground=document.createElement('div'); playground.className=isTextbook?'mt-playground textbook-playground':'mt-playground';
+  if(!isTextbook){
     // 积分栏
     const scoreBar=document.createElement('div'); scoreBar.className='mt-score-bar';
     const info=mtLevelInfo(mtScore.total);
@@ -1801,7 +1811,7 @@ function renderInteractiveDiagram(dia){
   const fn=builders[dia.type]||buildSegmentCanvas;
   const content=fn(dia,playground);
   playground.appendChild(content);
-  if(!isSegment){
+  if(!isTextbook){
     // 反馈区
     const fb=document.createElement('div'); fb.className='mt-feedback'; fb.textContent='💡 拖动蓝色圆点探索数值，或调整滑块看数量关系变化';
     playground.appendChild(fb);
