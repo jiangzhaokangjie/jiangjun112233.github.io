@@ -1050,6 +1050,7 @@ function wpSystemPrompt(){
 7. 新增强制规则：目标短量只画最终短线段，不要画成“基准 + 增加 - 减少”。连续比较题中，如果目标量是“比中间量少/矮/轻/短”，目标量那一行 parts 只能有一段（如 {"value":15,"label":"?"}），不要把中间量的加法过程拆到目标量行里；例如小弟弟比小哥哥矮0.4米，小弟弟行不能画成 "1.7m +0.2m -0.4m"，只能画 "?米" 的短线段，"少0.4米" 用 extras 标在小哥哥比小弟弟多出来的部分上。
 8. 新增强制规则：相同部分必须左右端对齐。多行线段中，只要相邻两行存在共同长度，就必须从同一个左端开始画，且共同部分右端在同一竖直线上；第一行和第二行的相同部分要用竖向虚线对齐，第二行和第三行的相同部分也要用竖向虚线对齐，不要只对齐其中一组。
 9. 图下方 caption 只写解题方向或数量关系式，不要写完整答案；完整计算放在 analysis.解题思路 里。
+10. 新增强制规则：任何涉及“多/少/高/矮/长/短”的比较关系，必须在 diagram.diffs 或 diagram.extras 中明确写出差量，不能省略。例如小哥哥比小妹妹多 0.2 米、小弟弟比小哥哥矮 0.4 米，都要在 diffs 里用 rows + label 写出来；否则渲染器无法画出正确的虚线和差量标注。小弟弟的最终长度 value 必须等于中间量减去差量（如 1.9 - 0.4 = 1.5），不要写错。
 
 1. 先用 1~2 句鼓励、引导的话开头（自然语言，不要 Markdown 符号）。
 2. 然后输出 \`\`\`json 代码块（严格合法、可 JSON.parse）：
@@ -1124,7 +1125,9 @@ function wpSystemPrompt(){
 通用：开头用自然语言不要 Markdown；必须优先按决策表选图；不适合画图时 diagram 可省只给 analysis。`;
 }
 function buildWPPrompt(text){
-  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出课本风格示意图：\n\n${text}\n\n⚠️ 先判断题型再选图：和差/和倍/差倍/比多少/年龄/倍数/归一归总/平均分/鸡兔份数/植树间隔用 {"type":"segment","rows":[...]}；速度/路程/中点/桥长/火车过桥/分数百分数/工程单位1/比例尺用 {"type":"axis",...}；相遇/追及用 {"type":"trip",...}；原来→后来连续变化/还原问题用 {"type":"timeline","stages":[...]}。\n所有图都要像小学课本：蓝色线段、紫红色括号、黑色文字；图是题意分析图，不要把刚算出的答案提前写进图里，未知量用 ?、?吨、?人、?米；差倍/比少题把已知差量标在长线段多出来的部分上；目标短量只画最终短线段，不要画成“基准+增加-减少”；相同部分要左右端对齐。\n输出格式：先用 1~2 句自然语言引导，再输出 \`\`\`json 块（含 analysis + diagram）。`;
+  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出课本风格示意图：\n\n${text}\n\n⚠️ 先判断题型再选图：和差/和倍/差倍/比多少/年龄/倍数/归一归总/平均分/鸡兔份数/植树间隔用 {"type":"segment","rows":[...]}；速度/路程/中点/桥长/火车过桥/分数百分数/工程单位1/比例尺用 {"type":"axis",...}；相遇/追及用 {"type":"trip",...}；原来→后来连续变化/还原问题用 {"type":"timeline","stages":[...]}。\n所有图都要像小学课本：蓝色线段、紫红色括号、黑色文字；图是题意分析图，不要把刚算出的答案提前写进图里，未知量用 ?、?吨、?人、?米；差倍/比少题把已知差量标在长线段多出来的部分上；目标短量只画最终短线段，不要画成“基准+增加-减少”；相同部分要左右端对齐。
+⚠️ 自检清单（输出JSON前必须逐项确认）：1）每行的value是否等于最终长度（不是中间过程）；2）所有“多/少/高/矮/长/短”关系是否都在diffs或extras里标注了；3）目标短量的value是否等于中间量减去差量（例如小弟弟=小哥哥-0.4=1.5）；4）相同部分的左右端是否对齐。
+输出格式：先用 1~2 句自然语言引导，再输出 \`\`\`json 块（含 analysis + diagram）。`;
 }
 function parseWP(ans){
   const m = ans.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -1607,15 +1610,21 @@ function buildSegmentCanvas(dia,playground){
     });
     const rows=baseRows.map(r=>Object.assign({},r,{parts:Array.isArray(r.parts)?r.parts.map(p=>Object.assign({},p)):[]}));
     const relations=[];
+    // 收集关系，并自动修正方向：确保longRow总是指向较长的行
     (Array.isArray(dia.extras)?dia.extras:[]).forEach(extra=>{
       const label=String(extra.label||'');
       if(!/(少|矮|轻|短|减少|减去)/.test(label))return;
-      relations.push({longRow:+extra.row,shortRow:+extra.fromRow,label});
+      let longRow=+extra.row, shortRow=+extra.fromRow;
+      if(longRow>=0&&shortRow>=0&&longRow<rows.length&&shortRow<rows.length){
+        const tLong=segRowTotal(rows[longRow]), tShort=segRowTotal(rows[shortRow]);
+        if(tLong<tShort){ const tmp=longRow; longRow=shortRow; shortRow=tmp; }
+      }
+      relations.push({longRow,shortRow,label});
     });
     (Array.isArray(dia.diffs)?dia.diffs:[]).forEach(diff=>{
       const label=String(diff.label||'');
       const pair=diff.rows||[];
-      const i=+pair[0],j=+pair[1];
+      let i=+pair[0],j=+pair[1];
       if(!/(少|矮|轻|短|减少|减去)/.test(label)||i<0||j<0||i>=rows.length||j>=rows.length)return;
       const ti=segRowTotal(rows[i]),tj=segRowTotal(rows[j]);
       relations.push(ti>=tj?{longRow:i,shortRow:j,label}:{longRow:j,shortRow:i,label});
