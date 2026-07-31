@@ -1046,8 +1046,8 @@ function wpSystemPrompt(){
 3. 凡是原来→后来连续变化，一律用 timeline。
 4. 图中 value 是“画图长度”，未知量也要给合理比例值，并用 label:"?" 或 "? 个" 标出来，不要 value:0。
 5. 图是“题意分析图”，不是“最终答案图”：不要把刚算出的答案提前写进图里。未知量统一用 "?"、"?吨"、"?人" 或 "?米"；每份未知时写 "1份"，整段未知时写 "?"。
-6. 差倍/比多比少题图中先写 "1份"/"1倍数"/"3倍数"/"?吨"，把已知差量写在长线段多出来的部分上，例如 "多120吨" 应标在第2份到第3份这段上。比少题同样如此：短的量 value 必须小于长的量，画成短线段，"少X"标在长线段多出的部分上（extras 里 row 指向长线段所在行，fromRow 指向短线段所在行）；绝不要把短线段画成和长线段一样长再减。
-7. 新增强制规则：目标短量只画最终短线段，不要画成“基准 + 增加 - 减少”。连续比较题中，如果目标量是“比中间量少/矮/轻/短”，目标量那一行 parts 只能有一段（如 {"value":15,"label":"?"}），不要把中间量的加法过程拆到目标量行里；例如小弟弟比小哥哥矮0.4米，小弟弟行不能画成 "1.7m +0.2m -0.4m"，只能画 "?米" 的短线段，"少0.4米" 用 extras 标在小哥哥比小弟弟多出来的部分上。
+6. 差倍/比多比少题图中先写 "1份"/"1倍数"/"3倍数"/"?吨"。如果是“多/高/长X”，差量可标在长线段多出来的部分上；如果是“少/矮/短X”，短的量 value 必须小于长的量，画成短线段，并把“少/矮/短X”用从短线段末端向右延伸到长线段末端的虚线标在短量那一行上；绝不要把短线段画成和长线段一样长再减。
+7. 新增强制规则：目标短量只画最终短线段，不要画成“基准 + 增加 - 减少”。连续比较题中，如果目标量是“比中间量少/矮/轻/短”，目标量那一行 parts 只能有一段（如 {"value":15,"label":"?"}），不要把中间量的加法过程拆到目标量行里；例如小弟弟比小哥哥矮0.4米，小弟弟行不能画成 "1.7m +0.2m -0.4m"，只能画 "?米" 的短线段，"矮0.4米" 用 extras 标明 row 为小哥哥、fromRow 为小弟弟，渲染时会画在小弟弟线段末端向右的虚线上。
 8. 新增强制规则：相同部分必须左右端对齐。多行线段中，只要相邻两行存在共同长度，就必须从同一个左端开始画，且共同部分右端在同一竖直线上；第一行和第二行的相同部分要用竖向虚线对齐，第二行和第三行的相同部分也要用竖向虚线对齐，不要只对齐其中一组。
 9. 图下方 caption 只写解题方向或数量关系式，不要写完整答案；完整计算放在 analysis.解题思路 里。
 10. 新增强制规则：任何涉及“多/少/高/矮/长/短”的比较关系，必须在 diagram.diffs 或 diagram.extras 中明确写出差量，不能省略。例如小哥哥比小妹妹多 0.2 米、小弟弟比小哥哥矮 0.4 米，都要在 diffs 里用 rows + label 写出来；否则渲染器无法画出正确的虚线和差量标注。小弟弟的最终长度 value 必须等于中间量减去差量（如 1.9 - 0.4 = 1.5），不要写错。
@@ -1086,8 +1086,8 @@ function wpSystemPrompt(){
 • rows：每行代表一个量（甲、乙等），左对齐排列。
 • parts：将该量的线段分成若干段，每段标注数值或份数。value 只是画图长度；未知量也要给估计长度，如 {"value":12,"label":"1份","unknown":true}，不要 value:0。
 • totalLabel：该行总量标注，未知量可标 "?"。
-• diffs：行间关系大括号，rows 指定涉及哪两行（索引从0开始），label 为关系文字（如"共72""多24""少12"）。"共/一共/合计"用右侧行间括号；"多/少/相差/差"要优先画成长线段上多出来的一段。
-• extras：差量括号，专门标“长线段比短线段多出的部分”。row 是长线段所在行，fromRow 是短线段所在行，label 写已知差量，side 可用 "top" 或 "bottom"。
+• diffs：行间关系大括号，rows 指定涉及哪两行（索引从0开始），label 为关系文字（如"共72""多24""矮0.4米"）。"共/一共/合计"用右侧行间括号；差量关系也要写清楚，不能省略。
+• extras：差量标注。row 是长线段所在行，fromRow 是短线段所在行，label 写已知差量，side 可用 "top" 或 "bottom"。其中“多/高/长”可画在长线段多出部分；“少/矮/短”会画成短量末端向右延伸到长量末端的水平虚线。
 
 【segment 示例库】
 和差：{"type":"segment","rows":[{"name":"甲","parts":[{"value":24,"label":"同样多"},{"value":12,"label":"多出的"}],"totalLabel":"?"},{"name":"乙","parts":[{"value":24,"label":"同样多"}],"totalLabel":"?"}],"diffs":[{"rows":[0,1],"label":"共60"}],"extras":[{"row":0,"fromRow":1,"label":"多12","side":"top"}],"caption":"先从总数中去掉差，再平均分"}
@@ -1126,7 +1126,7 @@ function wpSystemPrompt(){
 通用：开头用自然语言不要 Markdown；必须优先按决策表选图；不适合画图时 diagram 可省只给 analysis。`;
 }
 function buildWPPrompt(text){
-  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出课本风格示意图：\n\n${text}\n\n⚠️ 先判断题型再选图：和差/和倍/差倍/比多少/年龄/倍数/归一归总/平均分/鸡兔份数/植树间隔用 {"type":"segment","rows":[...]}；速度/路程/中点/桥长/火车过桥/分数百分数/工程单位1/比例尺用 {"type":"axis",...}；相遇/追及用 {"type":"trip",...}；原来→后来连续变化/还原问题用 {"type":"timeline","stages":[...]}。\n所有图都要像小学课本：蓝色线段、紫红色括号、黑色文字；图是题意分析图，不要把刚算出的答案提前写进图里，未知量用 ?、?吨、?人、?米；差倍/比少题把已知差量标在长线段多出来的部分上；目标短量只画最终短线段，不要画成“基准+增加-减少”；相同部分要左右端对齐。
+  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出课本风格示意图：\n\n${text}\n\n⚠️ 先判断题型再选图：和差/和倍/差倍/比多少/年龄/倍数/归一归总/平均分/鸡兔份数/植树间隔用 {"type":"segment","rows":[...]}；速度/路程/中点/桥长/火车过桥/分数百分数/工程单位1/比例尺用 {"type":"axis",...}；相遇/追及用 {"type":"trip",...}；原来→后来连续变化/还原问题用 {"type":"timeline","stages":[...]}。\n所有图都要像小学课本：蓝色线段、紫红色括号、黑色文字；图是题意分析图，不要把刚算出的答案提前写进图里，未知量用 ?、?吨、?人、?米；目标短量只画最终短线段，不要画成“基准+增加-减少”；“多/高/长”标在长量多出部分，“少/矮/短”用短量末端向右到长量末端的虚线标在短量那一行；相同部分要左右端对齐。
 ⚠️ 自检清单（输出JSON前必须逐项确认）：1）每行的value是否等于最终长度（不是中间过程）；2）所有“多/少/高/矮/长/短”关系是否都在diffs或extras里标注了；3）目标短量的value是否等于中间量减去差量（例如小弟弟=小哥哥-0.4=1.5）；4）相同部分的左右端是否对齐。
 输出格式：先用 1~2 句自然语言引导，再输出 \`\`\`json 块（含 analysis + diagram）。`;
 }
@@ -1589,6 +1589,14 @@ function buildSegmentCanvas(dia,playground){
     const m=String(text||'').match(/-?\d+(?:\.\d+)?/);
     return m?Math.abs(parseFloat(m[0])):NaN;
   }
+  function segInferShortDiffLabel(text){
+    const s=String(text||'');
+    let m=s.match(/(少|矮|短|轻)\s*([\d.]+)/);
+    if(m)return m[1]+m[2]+'米';
+    m=s.match(/(?:=|＝|比|身高|长度|高度)[^，。；;]*-\s*([\d.]+)\s*(?:m|米)?/i) || s.match(/-\s*([\d.]+)\s*(?:m|米)?/i);
+    if(m)return '矮'+m[1]+'米';
+    return '';
+  }
   function segRowTotal(row){
     return (row.parts||[]).reduce((s,p)=>s+Math.abs(+p.value||0),0);
   }
@@ -1630,21 +1638,20 @@ function buildSegmentCanvas(dia,playground){
       const ti=segRowTotal(rows[i]),tj=segRowTotal(rows[j]);
       relations.push(ti>=tj?{longRow:i,shortRow:j,label}:{longRow:j,shortRow:i,label});
     });
-    // 兜底：从 caption 中提取"少/矮/短 X"差量，自动推断缺失的关系
+    // 兜底：从 caption 中提取"少/矮/短 X"或"-X"差量，自动推断缺失的关系
     if(rows.length>=3){
       const caption=String(dia.caption||'');
       const allText=rows.map(r=>String(r.name||'')+String(r.caption||'')).join('')+caption;
-      // 尝试匹配"少/矮/短/轻 + 数字"
-      const m=allText.match(/(少|矮|短|轻)\s*([\d.]+)/);
-      if(m && relations.length<rows.length-1){
-        const diffVal=parseFloat(m[2]);
+      const inferredLabel=segInferShortDiffLabel(allText);
+      if(inferredLabel && relations.length<rows.length-1){
+        const diffVal=segParseNumber(inferredLabel);
         if(isFinite(diffVal)&&diffVal>0){
           // 默认最后一行是短量，倒数第二行是长量
           const longRow=rows.length-2, shortRow=rows.length-1;
           const longTotal=segRowTotal(rows[longRow]);
           const shortTotal=segRowTotal(rows[shortRow]);
           if(longTotal>shortTotal+1e-6 || Math.abs(longTotal-shortTotal)<1e-6){
-            relations.push({longRow,shortRow,label:m[1]+m[2]+'米'});
+            relations.push({longRow,shortRow,label:inferredLabel});
           }
         }
       }
@@ -1673,7 +1680,7 @@ function buildSegmentCanvas(dia,playground){
   const W=left+labelW+plotW+rightPad;
   const x0=left+labelW;
   const yOf=ri=>top+ri*(rowH+gap)+rowH/2;
-  const isDiffLabel=label=>/(多|少|差|相差)/.test(String(label||''))&&!/(共|一共|合计|总共)/.test(String(label||''));
+  const isDiffLabel=label=>/(多|少|高|矮|长|短|轻|重|差|相差)/.test(String(label||''))&&!/(共|一共|合计|总共)/.test(String(label||''));
   let animProgress=0;
 
   function draw(){
@@ -1799,16 +1806,22 @@ function buildSegmentCanvas(dia,playground){
       if(rows.length>=3){
         const captionText=String(dia.caption||'');
         const allText=rows.map(r=>String(r.name||'')+String(r.caption||'')).join('')+captionText;
-        const m=allText.match(/(少|矮|短|轻)\s*([\d.]+)/);
+        const inferredLabel=segInferShortDiffLabel(allText);
         const hasShortExtra=(Array.isArray(dia.extras)?dia.extras:[]).concat(autoExtras).some(e=>/(少|矮|短|轻)/.test(String(e.label||'')));
-        if(m && !hasShortExtra){
+        if(inferredLabel && !hasShortExtra){
           const longRow=rows.length-2, shortRow=rows.length-1;
           if(totals[longRow]>totals[shortRow]){
-            autoExtras.push({row:longRow,fromRow:shortRow,label:m[1]+m[2]+'米',side:'bottom'});
+            autoExtras.push({row:longRow,fromRow:shortRow,label:inferredLabel,side:'bottom'});
           }
         }
       }
-      const allExtras=(Array.isArray(dia.extras)?dia.extras:[]).concat(autoExtras);
+      const allExtras=(Array.isArray(dia.extras)?dia.extras:[]).concat(autoExtras).map(extra=>{
+        const a=+extra.row,b=+extra.fromRow;
+        if(a>=0&&b>=0&&a<rows.length&&b<rows.length&&totals[a]<totals[b]){
+          return Object.assign({},extra,{row:b,fromRow:a});
+        }
+        return extra;
+      });
       allExtras.forEach(extra=>{
         const row=+extra.row,fromRow=+extra.fromRow;
         if(row<0||fromRow<0||row>=rows.length||fromRow>=rows.length)return;
