@@ -1097,7 +1097,8 @@ function wpSystemPrompt(){
 年龄倍数：{"type":"segment","rows":[{"name":"小明","parts":[{"value":8,"label":"1份"}],"totalLabel":"1倍数","caption":"?岁"},{"name":"爸爸","parts":[{"value":8,"label":"1份"},{"value":8,"label":"1份"},{"value":8,"label":"1份"},{"value":8,"label":"1份"}],"totalLabel":"4倍数","totalSide":"bottom","caption":"?岁"}],"extras":[{"row":1,"fromRow":0,"label":"相差24岁","side":"top"}],"caption":"年龄差对应 4-1 份"}
 鸡兔同笼份数法：{"type":"segment","rows":[{"name":"总腿数","parts":[{"value":2,"label":"每只先按2条"},{"value":2,"label":"多出的腿"}],"totalLabel":"已知总腿数"}],"caption":"先假设，再看多出的腿"}
 植树间隔：{"type":"segment","rows":[{"name":"全长","parts":[{"value":10,"label":"1个间隔"},{"value":10,"label":"1个间隔"},{"value":10,"label":"1个间隔"},{"value":10,"label":"…"}],"totalLabel":"?米或已知全长"}],"caption":"先分清棵数和间隔数"}
-连续比较（比少）：{"type":"segment","rows":[{"name":"小妹妹","parts":[{"value":17,"label":"1.7米"}],"totalLabel":"1.7米"},{"name":"小哥哥","parts":[{"value":17,"label":"1.7米"},{"value":2,"label":"0.2米"}],"totalLabel":"1.9米"},{"name":"小弟弟","parts":[{"value":15,"label":"?"}],"totalLabel":"?米"}],"extras":[{"row":1,"fromRow":2,"label":"少0.4米","side":"bottom"}],"caption":"小弟弟=小哥哥-0.4"}
+连续比较（比少）：{"type":"segment","rows":[{"name":"小妹妹","parts":[{"value":17,"label":"1.7米"}],"totalLabel":"1.7米"},{"name":"小哥哥","parts":[{"value":17,"label":"1.7米"},{"value":2,"label":"0.2米"}],"totalLabel":"1.9米"},{"name":"小弟弟","parts":[{"value":15,"label":"?"}],"totalLabel":"?米"}],"extras":[{"row":1,"fromRow":0,"label":"多0.2米","side":"top"},{"row":1,"fromRow":2,"label":"矮0.4米","side":"bottom"}],"caption":"小弟弟=小哥哥-0.4"}
+⚠️ 注意上面的示例：连续比较题中，每对相邻量的比较关系都要在 extras 里标注！小哥哥比小妹妹多0.2米→extras标"多0.2米"；小弟弟比小哥哥矮0.4米→extras标"矮0.4米"。两个关系缺一不可，否则渲染器无法画出虚线和差量标注。
 
 【axis 结构】——单条线段，适合路程/单位1/工作总量/比例尺：
 {
@@ -1629,6 +1630,25 @@ function buildSegmentCanvas(dia,playground){
       const ti=segRowTotal(rows[i]),tj=segRowTotal(rows[j]);
       relations.push(ti>=tj?{longRow:i,shortRow:j,label}:{longRow:j,shortRow:i,label});
     });
+    // 兜底：从 caption 中提取"少/矮/短 X"差量，自动推断缺失的关系
+    if(rows.length>=3){
+      const caption=String(dia.caption||'');
+      const allText=rows.map(r=>String(r.name||'')+String(r.caption||'')).join('')+caption;
+      // 尝试匹配"少/矮/短/轻 + 数字"
+      const m=allText.match(/(少|矮|短|轻)\s*([\d.]+)/);
+      if(m && relations.length<rows.length-1){
+        const diffVal=parseFloat(m[2]);
+        if(isFinite(diffVal)&&diffVal>0){
+          // 默认最后一行是短量，倒数第二行是长量
+          const longRow=rows.length-2, shortRow=rows.length-1;
+          const longTotal=segRowTotal(rows[longRow]);
+          const shortTotal=segRowTotal(rows[shortRow]);
+          if(longTotal>shortTotal+1e-6 || Math.abs(longTotal-shortTotal)<1e-6){
+            relations.push({longRow,shortRow,label:m[1]+m[2]+'米'});
+          }
+        }
+      }
+    }
     relations.forEach(rel=>{
       const diffVal=segParseNumber(rel.label);
       const longRow=rel.longRow,shortRow=rel.shortRow;
@@ -1775,8 +1795,21 @@ function buildSegmentCanvas(dia,playground){
         const fromRow=row===i?j:i;
         autoExtras.push({row,fromRow,label:diff.label,side:diff.side});
       });
-      const extras=(Array.isArray(dia.extras)?dia.extras:[]).concat(autoExtras);
-      extras.forEach(extra=>{
+      // 兜底：如果三行以上且"少/矮"关系不足，从caption自动推断
+      if(rows.length>=3){
+        const captionText=String(dia.caption||'');
+        const allText=rows.map(r=>String(r.name||'')+String(r.caption||'')).join('')+captionText;
+        const m=allText.match(/(少|矮|短|轻)\s*([\d.]+)/);
+        const hasShortExtra=(Array.isArray(dia.extras)?dia.extras:[]).concat(autoExtras).some(e=>/(少|矮|短|轻)/.test(String(e.label||'')));
+        if(m && !hasShortExtra){
+          const longRow=rows.length-2, shortRow=rows.length-1;
+          if(totals[longRow]>totals[shortRow]){
+            autoExtras.push({row:longRow,fromRow:shortRow,label:m[1]+m[2]+'米',side:'bottom'});
+          }
+        }
+      }
+      const allExtras=(Array.isArray(dia.extras)?dia.extras:[]).concat(autoExtras);
+      allExtras.forEach(extra=>{
         const row=+extra.row,fromRow=+extra.fromRow;
         if(row<0||fromRow<0||row>=rows.length||fromRow>=rows.length)return;
         const rowTotal=totals[row]||0,fromTotal=totals[fromRow]||0;
