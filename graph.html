@@ -1581,8 +1581,20 @@ function buildSegmentCanvas(dia,playground){
     if(/(^|[^0-9])-|少|矮|轻|短|减少|减去/.test(label))return -1;
     return 1;
   }
+  function segParseNumber(text){
+    const m=String(text||'').match(/-?\d+(?:\.\d+)?/);
+    return m?Math.abs(parseFloat(m[0])):NaN;
+  }
+  function segRowTotal(row){
+    return (row.parts||[]).reduce((s,p)=>s+Math.abs(+p.value||0),0);
+  }
+  function segUnknownLabel(row){
+    const labels=(row.parts||[]).map(p=>String(p.label||'')).filter(Boolean);
+    const q=labels.find(v=>/\?/.test(v));
+    return row.unknownLabel || q || row.totalLabel || '?';
+  }
   function normalizeSegmentRows(inputRows){
-    return inputRows.map(r=>{
+    const baseRows=inputRows.map(r=>{
       const parts=Array.isArray(r.parts)?r.parts:[];
       const hasMinus=parts.some(p=>segPartSign(p)<0);
       if(!hasMinus||parts.length<=1)return r;
@@ -1593,6 +1605,35 @@ function buildSegmentCanvas(dia,playground){
         totalLabel:/\?/.test(String(r.totalLabel||''))?r.totalLabel:'?'
       });
     });
+    const rows=baseRows.map(r=>Object.assign({},r,{parts:Array.isArray(r.parts)?r.parts.map(p=>Object.assign({},p)):[]}));
+    const relations=[];
+    (Array.isArray(dia.extras)?dia.extras:[]).forEach(extra=>{
+      const label=String(extra.label||'');
+      if(!/(少|矮|轻|短|减少|减去)/.test(label))return;
+      relations.push({longRow:+extra.row,shortRow:+extra.fromRow,label});
+    });
+    (Array.isArray(dia.diffs)?dia.diffs:[]).forEach(diff=>{
+      const label=String(diff.label||'');
+      const pair=diff.rows||[];
+      const i=+pair[0],j=+pair[1];
+      if(!/(少|矮|轻|短|减少|减去)/.test(label)||i<0||j<0||i>=rows.length||j>=rows.length)return;
+      const ti=segRowTotal(rows[i]),tj=segRowTotal(rows[j]);
+      relations.push(ti>=tj?{longRow:i,shortRow:j,label}:{longRow:j,shortRow:i,label});
+    });
+    relations.forEach(rel=>{
+      const diffVal=segParseNumber(rel.label);
+      const longRow=rel.longRow,shortRow=rel.shortRow;
+      if(!isFinite(diffVal)||diffVal<=0||longRow<0||shortRow<0||longRow>=rows.length||shortRow>=rows.length)return;
+      const longTotal=segRowTotal(rows[longRow]);
+      const shortTotal=segRowTotal(rows[shortRow]);
+      const target=+(longTotal-diffVal).toFixed(6);
+      if(!(target>0)||Math.abs(shortTotal-target)<1e-6)return;
+      if(shortTotal<=longTotal+1e-6){
+        rows[shortRow].parts=[{value:target,label:segUnknownLabel(rows[shortRow]),unknown:true}];
+        rows[shortRow].totalLabel=/\?/.test(String(rows[shortRow].totalLabel||''))?rows[shortRow].totalLabel:'?';
+      }
+    });
+    return rows;
   }
   const rows=normalizeSegmentRows(dia.rows);
   // 书本风格参数：更大的留白、清晰的间距
@@ -1661,16 +1702,7 @@ function buildSegmentCanvas(dia,playground){
           ctx.stroke();
         }
 
-        // 上方份数标注（课本风格：黑色，居中）
-        if(p.label && animProgress>0.8){
-          const labelColor = p.unknown ? '#dc2626' : '#000000';
-          mtText(ctx,p.label,x+w/2,y-16,{size:14,weight:600,color:labelColor,align:'center',baseline:'middle'});
-        }
-
-        // 未知量用红色"?"标注（书本常见标记）
-        if(p.unknown && animProgress>0.9 && !p.label){
-          mtText(ctx,'?',x+w/2,y-16,{size:20,weight:700,color:'#dc2626',align:'center',baseline:'middle'});
-        }
+        // 上方份数标注已去掉：标注统一由总量/差量大括号承担，避免与括号外凸起处重复
 
         x+=plotW*partVal/globalMax;
       });
@@ -1720,7 +1752,10 @@ function buildSegmentCanvas(dia,playground){
       ctx.restore();
     }
 
-    // 差量括号：差倍/比多少题，把“多/少/相差”标在长线段多出来的那一段上
+    // 差量标注：
+    // - "多/高/长"：用括号标在长线段多出的那一段上（保持课本习惯）
+    // - "少/矮/短"：从短量行末端向右画虚线，标在短量线段上（避免和长量重复标注）
+    // 差倍/比多少题，把“多/少/相差”标在长线段多出来的那一段上
     if(animProgress>0.85){
       const autoExtras=[];
       (dia.diffs||[]).forEach(diff=>{
@@ -1737,12 +1772,30 @@ function buildSegmentCanvas(dia,playground){
         if(row<0||fromRow<0||row>=rows.length||fromRow>=rows.length)return;
         const rowTotal=totals[row]||0,fromTotal=totals[fromRow]||0;
         if(rowTotal<=fromTotal)return;
-        const y=yOf(row);
         const x1=x0+plotW*fromTotal/globalMax*animProgress;
         const x2=x0+plotW*rowTotal/globalMax*animProgress;
         if(x2-x1<18)return;
-        const side=extra.side || (row===0 && rows.length>1 ? 'bottom' : 'top');
-        mtTextbookBrace(ctx,x1,x2,side==='top'?y-30:y+30,side,extra.label||'多出的部分','#b04a76');
+        const label=String(extra.label||'');
+        const isShortRelation=/(少|矮|轻|短)/.test(label);
+        if(isShortRelation){
+          // 少/矮/短：从短量行末端向右水平画虚线，文字标在虚线上方
+          const yShort=yOf(fromRow);
+          ctx.save();
+          ctx.strokeStyle='#b04a76';
+          ctx.lineWidth=1.4;
+          ctx.setLineDash([5,5]);
+          ctx.beginPath();
+          ctx.moveTo(x1,yShort);
+          ctx.lineTo(x2,yShort);
+          ctx.stroke();
+          ctx.restore();
+          mtText(ctx,label,(x1+x2)/2,yShort-10,{size:13,weight:600,color:'#b04a76',align:'center',baseline:'bottom'});
+        } else {
+          // 多/高/长等：括号标在长线段多出的那一段上
+          const y=yOf(row);
+          const side=extra.side || (row===0 && rows.length>1 ? 'bottom' : 'top');
+          mtTextbookBrace(ctx,x1,x2,side==='top'?y-30:y+30,side,label||'多出的部分','#b04a76');
+        }
       });
     }
 
