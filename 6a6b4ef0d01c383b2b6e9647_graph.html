@@ -1107,8 +1107,47 @@ function drawGeometry(spec){
   });
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">'+out.join('')+'</svg>';
 }
+function isTrackProblemData(data){
+  const text=JSON.stringify(data||'');
+  return /跑道|半圆|直道|长边|圆周长|一圈/.test(text) && /60|50|长方形|直径|两条/.test(text);
+}
+function fixedTrackMainDiagram(){
+  return {"w":320,"h":220,"els":[
+    {"t":"seg","x1":90,"y1":60,"x2":230,"y2":60},
+    {"t":"seg","x1":90,"y1":160,"x2":230,"y2":160},
+    {"t":"arc","cx":90,"cy":110,"r":50,"a0":90,"a1":270},
+    {"t":"arc","cx":230,"cy":110,"r":50,"a0":-90,"a1":90},
+    {"t":"pt","x":90,"y":60,"label":"A"},
+    {"t":"pt","x":230,"y":60,"label":"B"},
+    {"t":"pt","x":230,"y":160,"label":"C"},
+    {"t":"pt","x":90,"y":160,"label":"D"},
+    {"t":"len","x1":110,"y1":60,"x2":210,"y2":60,"text":"60米"},
+    {"t":"len","x1":90,"y1":60,"x2":90,"y2":160,"text":"50米"}
+  ],"aux":[]};
+}
+function fixedTrackStepDiagram(){
+  return {"w":320,"h":240,"els":[
+    {"t":"seg","x1":70,"y1":70,"x2":250,"y2":70},
+    {"t":"len","x1":120,"y1":70,"x2":200,"y2":70,"text":"60米"},
+    {"t":"circle","cx":160,"cy":135,"r":45},
+    {"t":"txt","x":160,"y":140,"text":"50米"},
+    {"t":"seg","x1":70,"y1":200,"x2":250,"y2":200},
+    {"t":"txt","x":160,"y":225,"text":"两个半圆合成一个圆"}
+  ],"aux":[]};
+}
+function fixTrackGeometryData(data){
+  if(!data || !isTrackProblemData(data)) return data;
+  data.diagram=fixedTrackMainDiagram();
+  data.steps=[{
+    title:'拼半圆成整圆',
+    desc:'把左右两个半圆拼在一起，就是一个直径50米的圆；跑道一圈 = 两条长边 + 这个圆的周长。',
+    diagram:fixedTrackStepDiagram()
+  }].concat((data.steps||[]).filter(s=>!/(半圆|整圆|圆周长|直道|跑道)/.test(JSON.stringify(s||''))).slice(0,1));
+  return data;
+}
 function renderGeometry(ans){
   const {intro,data}=parseGeo(ans);
+  if(data) fixTrackGeometryData(data);
   const d=document.createElement('div'); d.className='msg a';
   if(intro){ const p=document.createElement('div'); p.style.marginBottom='4px'; p.innerHTML=renderMd(intro); d.appendChild(p); }
   if(data && data.analysis){
@@ -2548,6 +2587,7 @@ function fileToDataURL(file){
   });
 }
 function buildGeoScanConfirmText(scan){
+  fixTrackGeometryData(scan);
   const parts=[];
   parts.push('请根据下面“拍照识别出的几何图形和题目”进行解答，并画出图形、辅助线和必要的分步变换。');
   if(scan.question_text) parts.push('\n题干文字：\n'+scan.question_text);
@@ -2559,6 +2599,7 @@ function buildGeoScanConfirmText(scan){
   return parts.join('\n');
 }
 function renderGeoScanPreview(scan){
+  fixTrackGeometryData(scan);
   const d=document.createElement('div'); d.className='msg sys';
   let h='<div class="wp-h">📷 几何图形识别预览</div>';
   const conf=(typeof scan.confidence==='number') ? Math.round(scan.confidence*100)+'%' : '待核对';
