@@ -277,10 +277,12 @@
     <button id="chatWP">📊 应用题线段图</button>
     <button id="chatGeo">📐 几何</button>
     <button id="chatScan">📷 拍照/扫描</button>
+    <button id="chatAlbum">🖼 相册上传</button>
     <button data-q="清空对话">🗑 清空</button>
   </div>
   <div id="chatScanStatus" class="scan-status" style="display:none"></div>
   <input type="file" id="chatScanFile" accept="image/*" capture="environment" style="display:none">
+  <input type="file" id="chatAlbumFile" accept="image/*" style="display:none">
   <div class="chat-in">
     <textarea id="chatInput" placeholder="让它出练习题，或哪里不懂就直接问…（也能📷拍照/扫描题目，或用语输入法的语音说）"></textarea>
     <button id="chatSend">发送</button>
@@ -863,7 +865,7 @@ document.getElementById('setSave').onclick=()=>{
 // 快捷指令
 document.getElementById('chatQuick').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
-  if(b.id==='chatWP' || b.id==='chatGeo' || b.id==='chatScan') return;
+  if(b.id==='chatWP' || b.id==='chatGeo' || b.id==='chatScan' || b.id==='chatAlbum') return;
   if(b.dataset.q==='清空对话'){ chatHistory=[]; chatMsgs.innerHTML=''; addMsg('system','对话已清空。'); return; }
   sendChat(b.dataset.q, true);
 });
@@ -985,12 +987,19 @@ aux 为辅助线数组（蓝色虚线，写法同 els 的 seg/ray）。
     {"t":"len","x1":230,"y1":60,"x2":230,"y2":160,"text":"50米"},
     {"t":"txt","x":160,"y":190,"text":"两个半圆合成一个圆"}
   ],"aux":[{"t":"seg","x1":230,"y1":60,"x2":230,"y2":160,"dashed":true}]}
+- 跑道题如果需要 steps，只保留一个“两个半圆合成整圆”的步骤即可；这一步的 diagram 要画一个独立圆，标直径=宽，不要再画上下两条长边，更不要把圆夹在两条长边之间。可参考：
+  {"w":320,"h":220,"els":[
+    {"t":"circle","cx":160,"cy":105,"r":50},
+    {"t":"seg","x1":160,"y1":55,"x2":160,"y2":155,"dashed":true},
+    {"t":"len","x1":160,"y1":55,"x2":160,"y2":155,"text":"50米"},
+    {"t":"txt","x":160,"y":185,"text":"两个半圆合成一个圆"}
+  ],"aux":[]}
 - steps 每步给变换后的 diagram：平移→整体偏移坐标；旋转→旋转坐标（以某点为中心）；切割→画切开后两部分。题目用不到的变换就省略该步（如只加辅助线、只切割），steps 留真正用到的 1~2 步即可。
 - 不要加 Markdown 标题或列表符号。
 - 最终自然语言中要带完整单位，避免小学常见错误：直径半径混淆、斜边当高、三角形/梯形忘除以2、半圆周长漏直径、跑道两个半圆误算成两个圆、圆锥体积忘除以3。`;
 }
 function buildGeoPrompt(text){
-  return `@skill:primary-geometry-diagram-solver\n（小学几何·画图解题模式）\n请对下面这道几何题做综合分析：先判断是平面图形、立体图形、图形运动、组合图形还是典型题型；再画出课本风格图形（含必要辅助线/展开图/变换图）；最后分步列式解答。\n\n${text}\n\n（要求：先用 1~2 句引导语，再输出 \`\`\`json 块，含 analysis / diagram / steps；diagram 用坐标图元描述，辅助线放 aux，变换每步一个 diagram。必须检查单位、半径/直径、对应高、半圆是否含直径、组合图形加减关系、立体图形表面积/体积区别。若是跑道题，图必须画成体育场形：两条长边 + 左右两个向外鼓出的半圆弧，不能把长方形左右两条宽画成实线跑道边界。）`;
+  return `@skill:primary-geometry-diagram-solver\n（小学几何·画图解题模式）\n请对下面这道几何题做综合分析：先判断是平面图形、立体图形、图形运动、组合图形还是典型题型；再画出课本风格图形（含必要辅助线/展开图/变换图）；最后分步列式解答。\n\n${text}\n\n（要求：先用 1~2 句引导语，再输出 \`\`\`json 块，含 analysis / diagram / steps；diagram 用坐标图元描述，辅助线放 aux，变换每步一个 diagram。必须检查单位、半径/直径、对应高、半圆是否含直径、组合图形加减关系、立体图形表面积/体积区别。若是跑道题，主图必须画成体育场形：两条长边 + 左右两个向外鼓出的半圆弧，不能把长方形左右两条宽画成实线跑道边界；步骤图若展示“两个半圆合成一个圆”，只画一个独立圆和直径，不要再画上下长边。）`;
 }
 function geoScanSystemPrompt(){
   return `你是一位小学几何题图片识别助手，使用“小学几何画图解题 Skill”的图形范围和规则。用户会上传一张包含几何图形、题干、标注尺寸或角度的图片。
@@ -2676,6 +2685,28 @@ document.getElementById('chatScanFile').onchange=async(e)=>{
   await doChatScan(f);
   e.target.value='';   // 允许重复选同一张
 };
+document.getElementById('chatAlbum').onclick=()=>document.getElementById('chatAlbumFile').click();
+document.getElementById('chatAlbumFile').onchange=async(e)=>{
+  const f=e.target.files&&e.target.files[0];
+  if(!f) return;
+  await doChatScan(f);
+  e.target.value='';   // 允许重复选同一张
+};
+chatInput.addEventListener('paste', async e=>{
+  const items=e.clipboardData&&e.clipboardData.items;
+  if(!items) return;
+  for(const it of items){
+    if(it.kind==='file' && /^image\//.test(it.type||'')){
+      const f=it.getAsFile();
+      if(f){
+        e.preventDefault();
+        setChatScanStatus('📋 已粘贴图片，正在识别…');
+        await doChatScan(f);
+        return;
+      }
+    }
+  }
+});
 
 async function sendChat(presetText, asNormal){
   const text = (presetText!=null) ? presetText : chatInput.value.trim();
