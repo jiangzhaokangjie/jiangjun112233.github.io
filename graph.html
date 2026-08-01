@@ -1031,10 +1031,11 @@ function wpSystemPrompt(){
 |---|---|
 | 和差、和倍、差倍、比多比少、两个量比较 | **"segment"**：两行或多行线段，对齐相同部分；“共/一共”用右侧行间括号，“多/少/相差”标在多出来的线段部分 |
 | 倍数关系、年龄问题、鸡兔同笼中可用“份数”表示的关系 | **"segment"**：每份画成等长小段，1倍画1段，几倍画几段 |
-| 归一归总、平均分、每份数/份数/总数、单价数量总价、工作效率总量 | **"segment"**：一条线段平均分成若干份，上方标总量，下方标份数或每份 |
+| 平均分、已知总数和份数求每份数、已知总数和每份数求份数 | **"axis"**：同一条轴上三层标注；上层总数，中层等分/刻度，下层只标要求的每份数或份数 |
+| 归一归总、单价数量总价、工作效率总量 | **"segment"** 或 **"axis"**：如果是平均分含义，优先用同一条 axis |
 | 分数、百分数、折扣、税率、成数、单位“1”、已知几分之几求整体/部分 | **"axis"**：一条单位“1”线段，按分母等分，括号标整体和部分；也可用 **"fraction"** 等分着色 |
 | 速度/路程/时间、行程、中点、桥长、火车过桥、比例尺上的距离 | **"axis"**：一条从起点到终点的线段，刻度表示距离或时间，不能画多行 |
-| 相遇、追及、两车同时出发、相向/同向运动 | **"trip"**：一条路程线段，两端或同端标人物/车辆，用箭头标运动方向和相遇/追及点 |
+| 相遇、追及、两车同时出发、相向/同向运动、多次相遇 | **"trip"**：一条路程线段，两端或同端标人物/车辆，用箭头标运动方向；多次相遇要用 meetings 标出多个相遇点 |
 | 工程问题、水管注水排水、共同完成、效率问题 | **"axis"**：把工作总量看成单位“1”，分段标时间/效率/完成部分 |
 | 多步连续变化、还原问题、先增加再减少、库存变化、年龄过几年 | **"timeline"**：按“原来→变化1→变化2→现在”画连续变化轴 |
 | 周长、面积、体积、路线绕行、图形拼剪 | **"axis"** 或几何模式：若只是数量关系，用线段标长宽高；若需图形，diagram 可省，转为文字分析 |
@@ -1051,6 +1052,9 @@ function wpSystemPrompt(){
 8. 新增强制规则：相同部分必须左右端对齐。多行线段中，只要相邻两行存在共同长度，就必须从同一个左端开始画，且共同部分右端在同一竖直线上；第一行和第二行的相同部分要用竖向虚线对齐，第二行和第三行的相同部分也要用竖向虚线对齐，不要只对齐其中一组。
 9. 图下方 caption 只写解题方向或数量关系式，不要写完整答案；完整计算放在 analysis.解题思路 里。
 10. 新增强制规则：任何涉及“多/少/高/矮/长/短”的比较关系，必须在 diagram.diffs 或 diagram.extras 中明确写出差量，不能省略。例如小哥哥比小妹妹多 0.2 米、小弟弟比小哥哥矮 0.4 米，都要在 diffs 里用 rows + label 写出来；否则渲染器无法画出正确的虚线和差量标注。小弟弟的最终长度 value 必须等于中间量减去差量（如 1.9 - 0.4 = 1.5），不要写错。
+11. 平均分题强制用同一条 axis 画三层：上层 braces 标总数；中层 ticks 表示等分；下层 braces 只标一个“?块/20个”或整段“?人（份数）”。不要画成多条线段，不要重复多个 ?。
+12. 已知总数和每份数求份数时，第一份用 braces 标每份数，整段下方用 braces 标“?人/份数”，后半段可用 dashedFrom 画虚线表示还可以继续分。
+13. 多次相遇题必须用 trip.meetings 标多个相遇点，用 gaps 标相遇点之间的时间差，不要只画一个相遇点。
 
 1. 先用 1~2 句鼓励、引导的话开头（自然语言，不要 Markdown 符号）。
 2. 然后输出 \`\`\`json 代码块（严格合法、可 JSON.parse）：
@@ -1103,21 +1107,26 @@ function wpSystemPrompt(){
 【axis 结构】——单条线段，适合路程/单位1/工作总量/比例尺：
 {
   "type":"axis",
-  "axis": {"startLabel":"起点名","endLabel":"终点名","value":全程数值,"unit":"单位","ticks":等分数},
+  "axis": {"startLabel":"起点名","endLabel":"终点名","value":全程数值,"unit":"单位","ticks":等分数,"dashedFrom":可选0~1},
   "points":  [ {"at":0或0.5或1或绝对值,"label":"关键点文字","below":true} ],
   "braces":  [ {"from":0,"to":1,"label":"区间标注","side":"bottom或top","level":0,"color":"#ea580c"} ],
   "shade":   [ {"from":0,"to":0.6,"color":"#2563eb"} ],
   "arrows":  [ {"from":0,"to":0.5,"color":"#2563eb","label":"甲 60米/分"} ],
   "caption": "数量关系式"
 }
+• axis.dashedFrom：可选。已知总数和每份数求份数时，若只明确画前几份，后面用虚线表示继续分，例如 dashedFrom:0.5 表示后半段虚线。
+• 平均分同轴三层：braces 用不同 side/level 表示上层总数、下层每份数或份数；不要用多行 segment。
 
 【axis 示例库】
 速度中点：
 {"type":"axis","axis":{"startLabel":"甲地","endLabel":"乙地","value":680,"unit":"千米","ticks":10},"points":[{"at":0.5,"label":"中点","below":false}],"braces":[{"from":0,"to":0.5,"label":"5小时走到中点","side":"top","level":0},{"from":0,"to":1,"label":"全程680千米","side":"bottom","level":0}],"caption":"先求半程，再求速度"}
+平均分求每份数：{"type":"axis","axis":{"startLabel":"","endLabel":"","value":100,"unit":"块","ticks":4},"points":[],"braces":[{"from":0,"to":1,"label":"100块（总数）","side":"top","level":0},{"from":0,"to":0.25,"label":"?块（每份数）","side":"bottom","level":0}],"caption":"100块平均分成4箱，求每箱多少块"}
+求份数：{"type":"axis","axis":{"startLabel":"","endLabel":"","value":120,"unit":"个","ticks":6,"dashedFrom":0.5},"points":[],"braces":[{"from":0,"to":1,"label":"120个（总数）","side":"top","level":0},{"from":0,"to":0.1667,"label":"20个（每份数）","side":"bottom","level":0},{"from":0,"to":1,"label":"?人（份数）","side":"bottom","level":1}],"caption":"求120里面有几个20"}
 火车过桥：{"type":"axis","axis":{"startLabel":"车头上桥","endLabel":"车尾离桥","value":1360,"unit":"米","ticks":0},"points":[{"at":1200,"label":"车头到桥尾","below":false}],"braces":[{"from":0,"to":1200,"label":"桥长1200米","side":"top","level":0},{"from":1200,"to":1360,"label":"车长160米","side":"top","level":0},{"from":0,"to":1360,"label":"实际行驶路程","side":"bottom","level":0}],"caption":"过桥路程=桥长+车长"}
 分数单位1：{"type":"axis","axis":{"startLabel":"单位1","endLabel":"","value":1,"unit":"","ticks":5},"points":[],"braces":[{"from":0,"to":1,"label":"全班40人","side":"top","level":0},{"from":0,"to":0.6,"label":"男生占3/5","side":"bottom","level":0}],"shade":[{"from":0,"to":0.6,"color":"#2f7fb8"}],"caption":"求部分：用单位1乘分率"}
 工程单位1：{"type":"axis","axis":{"startLabel":"开工","endLabel":"完工","value":1,"unit":"","ticks":5},"points":[{"at":0.6,"label":"已完成3/5","below":false}],"braces":[{"from":0,"to":1,"label":"工作总量1","side":"top","level":0},{"from":0,"to":0.6,"label":"已完成3/5","side":"bottom","level":0},{"from":0.6,"to":1,"label":"剩下?","side":"bottom","level":1}],"caption":"剩下=整体-已完成"}
 相遇问题：{"type":"trip","kind":"meet","total":600,"meet":240,"leftLabel":"甲地","rightLabel":"乙地","movers":[{"name":"甲走的路","from":"left","dist":240},{"name":"乙走的路","from":"right","dist":360}],"meetLabel":"相遇点","caption":"全程=甲走的路+乙走的路"}
+多次相遇：{"type":"trip","kind":"meet","total":35.1,"leftLabel":"A地","rightLabel":"B地","movers":[{"name":"甲4.8km/h","from":"left","dist":10.8},{"name":"乙5.4km/h","from":"left","dist":11.7},{"name":"丙10.8km/h","from":"right","dist":23.4}],"meetings":[{"at":23.4,"label":"乙丙相遇"},{"at":23.0,"label":"甲丙相遇"}],"gaps":[{"from":23.0,"to":23.4,"label":"相差5分钟"}],"caption":"两次相遇都是同一段AB全程"}
 追及问题：{"type":"trip","kind":"catch","total":300,"meet":300,"leftLabel":"起点","rightLabel":"追上点","movers":[{"name":"甲走的路","from":"left","dist":300},{"name":"乙先领先，再走","from":"left","offset":80,"dist":220}],"meetLabel":"追上","caption":"甲多走的路=乙领先的路"}
 
 【timeline 结构】——连续变化/还原问题：
@@ -1126,7 +1135,7 @@ function wpSystemPrompt(){
 通用：开头用自然语言不要 Markdown；必须优先按决策表选图；不适合画图时 diagram 可省只给 analysis。`;
 }
 function buildWPPrompt(text){
-  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出课本风格示意图：\n\n${text}\n\n⚠️ 先判断题型再选图：和差/和倍/差倍/比多少/年龄/倍数/归一归总/平均分/鸡兔份数/植树间隔用 {"type":"segment","rows":[...]}；速度/路程/中点/桥长/火车过桥/分数百分数/工程单位1/比例尺用 {"type":"axis",...}；相遇/追及用 {"type":"trip",...}；原来→后来连续变化/还原问题用 {"type":"timeline","stages":[...]}。\n所有图都要像小学课本：蓝色线段、紫红色括号、黑色文字；图是题意分析图，不要把刚算出的答案提前写进图里，未知量用 ?、?吨、?人、?米；目标短量只画最终短线段，不要画成“基准+增加-减少”；“多/高/长”标在长量多出部分，“少/矮/短”用短量末端向右到长量末端的虚线标在短量那一行；相同部分要左右端对齐。
+  return `@skill:beishida-math-knowledge\n（应用题·线段图模式）\n请对下面这道应用题做综合分析并画出课本风格示意图：\n\n${text}\n\n⚠️ 先判断题型再选图：和差/和倍/差倍/比多少/年龄/倍数/鸡兔份数/植树间隔用 {"type":"segment","rows":[...]}；平均分/求每份数/求份数用同一条轴上的三层 {"type":"axis",...}；速度/路程/中点/桥长/火车过桥/分数百分数/工程单位1/比例尺用 {"type":"axis",...}；相遇/追及/多次相遇用 {"type":"trip",...}；原来→后来连续变化/还原问题用 {"type":"timeline","stages":[...]}。\n所有图都要像小学课本：蓝色线段、紫红色括号、黑色文字；图是题意分析图，不要把刚算出的答案提前写进图里，未知量用 ?、?吨、?人、?米；平均分必须同一条轴三层标注，不画多条线段、不重复多个?；目标短量只画最终短线段，不要画成“基准+增加-减少”；“多/高/长”标在长量多出部分，“少/矮/短”用短量末端向右到长量末端的虚线标在短量那一行；多次相遇用 meetings/gaps 标多个相遇点和时间差。
 ⚠️ 自检清单（输出JSON前必须逐项确认）：1）每行的value是否等于最终长度（不是中间过程）；2）所有“多/少/高/矮/长/短”关系是否都在diffs或extras里标注了；3）目标短量的value是否等于中间量减去差量（例如小弟弟=小哥哥-0.4=1.5）；4）相同部分的左右端是否对齐。
 输出格式：先用 1~2 句自然语言引导，再输出 \`\`\`json 块（含 analysis + diagram）。`;
 }
@@ -1330,6 +1339,7 @@ function buildAxisCanvas(dia,playground){
   const shades=Array.isArray(dia.shade)?dia.shade:[];
   const arrows=Array.isArray(dia.arrows)?dia.arrows:[];
   const ticks=ax.ticks!=null?+ax.ticks:0;
+  const dashedFrom=ax.dashedFrom!=null?Math.max(0,Math.min(1,+ax.dashedFrom)):null;
 
   const x0=58, plotW=360, W=x0+plotW+64;
   const axisY=92;
@@ -1360,9 +1370,18 @@ function buildAxisCanvas(dia,playground){
       ctx.fillStyle=s.color||'#2f7fb8'; ctx.globalAlpha=0.18;
       ctx.fillRect(Math.min(x1,x2),axisY-13,Math.abs(x2-x1),26); ctx.globalAlpha=1;
     });
-    // 横轴（课本风格蓝色线段）
+    // 横轴（课本风格蓝色线段；可从某处开始画虚线，表示后面继续分）
     ctx.strokeStyle='#2f7fb8'; ctx.lineWidth=2.3; ctx.lineCap='butt';
-    ctx.beginPath(); ctx.moveTo(x0,axisY); ctx.lineTo(x0+plotW*animProgress,axisY); ctx.stroke();
+    if(dashedFrom!=null&&animProgress>0.95){
+      const dashX=x0+plotW*dashedFrom;
+      ctx.beginPath(); ctx.moveTo(x0,axisY); ctx.lineTo(dashX,axisY); ctx.stroke();
+      ctx.save();
+      ctx.setLineDash([7,6]);
+      ctx.beginPath(); ctx.moveTo(dashX,axisY); ctx.lineTo(x0+plotW,axisY); ctx.stroke();
+      ctx.restore();
+    }else{
+      ctx.beginPath(); ctx.moveTo(x0,axisY); ctx.lineTo(x0+plotW*animProgress,axisY); ctx.stroke();
+    }
     if(animProgress>0.95){
       ctx.lineWidth=2.1;
       ctx.beginPath();ctx.moveTo(x0,axisY-7);ctx.lineTo(x0,axisY+7);ctx.stroke();
@@ -1903,13 +1922,17 @@ function buildTripCanvas(dia,playground){
   const movers=Array.isArray(dia.movers)?dia.movers:[];
   if(!movers.length) return document.createElement('div');
   const meet=+dia.meet||0;
+  const meetings=Array.isArray(dia.meetings)?dia.meetings:[];
+  const gaps=Array.isArray(dia.gaps)?dia.gaps:[];
   let total=+dia.total||0;
   total=Math.max(total,meet);
+  meetings.forEach(m=>{total=Math.max(total,+m.at||0);});
+  gaps.forEach(g=>{total=Math.max(total,+g.from||0,+g.to||0);});
   movers.forEach(m=>{const off=+m.offset||0;total=Math.max(total,off+(+m.dist||0));});
   if(total<=0)total=1;
   const x0=30,plotW=392,W=x0+plotW+30;
   const roadY=108,arrowY=roadY-28;
-  const H=roadY+58;
+  const H=roadY+86;
   const xOf=v=>x0+plotW*(v/total);
   const textbook=playground&&playground.classList&&playground.classList.contains('textbook-playground');
   let animProgress=0;
@@ -1937,15 +1960,26 @@ function buildTripCanvas(dia,playground){
       mtArrow(ctx,x1,arrowY,cx2,arrowY,color,3.2);
       if(prog>0.8)mtText(ctx,m.name||('物体'+(i+1)),(x1+x2)/2,arrowY-9,{size:18,weight:700,color,align:'center',baseline:'middle'});
     });
-    // 相遇点
-    if(meet>0&&meet<=total&&animProgress>0.7){
-      const mx=xOf(meet);
-      ctx.strokeStyle='#7c3aed';ctx.lineWidth=1.6;ctx.setLineDash([4,3]);
-      ctx.beginPath();ctx.moveTo(mx,arrowY-6);ctx.lineTo(mx,roadY+14);ctx.stroke();
-      ctx.setLineDash([]);
-      mtText(ctx,dia.meetLabel||(kind==='catch'?'追上':'相遇'),mx,arrowY-14,{size:18,weight:700,color:'#ea580c',align:'center',baseline:'middle'});
+    // 相遇点：支持单个 meet，也支持多个 meetings
+    const meetList=meetings.length?meetings:(meet>0?[{at:meet,label:dia.meetLabel||(kind==='catch'?'追上':'相遇')}]:[]);
+    if(animProgress>0.7){
+      meetList.forEach((pt,idx)=>{
+        const at=+pt.at||0;
+        if(!(at>0&&at<=total))return;
+        const mx=xOf(at);
+        ctx.strokeStyle='#7c3aed';ctx.lineWidth=1.6;ctx.setLineDash([4,3]);
+        ctx.beginPath();ctx.moveTo(mx,arrowY-6);ctx.lineTo(mx,roadY+22);ctx.stroke();
+        ctx.setLineDash([]);
+        mtText(ctx,pt.label||('相遇点'+(idx+1)),mx,arrowY-14-idx*18,{size:15,weight:700,color:'#ea580c',align:'center',baseline:'middle'});
+      });
+      gaps.forEach(g=>{
+        const x1=xOf(+g.from||0),x2=xOf(+g.to||0);
+        if(Math.abs(x2-x1)<4)return;
+        const y=roadY+30;
+        mtTextbookBrace(ctx,Math.min(x1,x2),Math.max(x1,x2),y,'bottom',g.label||'时间差','#b04a76');
+      });
     }
-    if(dia.caption&&animProgress>0.9)mtText(ctx,dia.caption,x0+plotW/2,roadY+50,{size:15,color:'#6b7280',align:'center',baseline:'hanging'});
+    if(dia.caption&&animProgress>0.9)mtText(ctx,dia.caption,x0+plotW/2,roadY+74,{size:15,color:'#6b7280',align:'center',baseline:'hanging'});
     return cv;
   }
   const wrap=document.createElement('div');wrap.className=textbook?'mt-canvas-wrap textbook-seg':'mt-canvas-wrap';
