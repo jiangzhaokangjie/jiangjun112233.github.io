@@ -1062,6 +1062,8 @@ function parseLooseJson(text){
 }
 function drawGeometry(spec){
   if(!spec) return '';
+  if(spec.type==='track-main') return drawFixedTrackMainSvg();
+  if(spec.type==='track-step') return drawFixedTrackStepSvg();
   const W=spec.w||320, H=spec.h||220;
   const els=(spec.els||[]).concat((spec.aux||[]).map(a=>Object.assign({dashed:true,_aux:true},a)));
   const out=[]; const escT=s=>escHtml(s==null?'':String(s));
@@ -1107,33 +1109,34 @@ function drawGeometry(spec){
   });
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">'+out.join('')+'</svg>';
 }
+function drawFixedTrackMainSvg(){
+  return '<svg viewBox="0 0 320 220" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">'+
+    '<path d="M90 60 H230 C257.6 60 280 82.4 280 110 C280 137.6 257.6 160 230 160 H90 C62.4 160 40 137.6 40 110 C40 82.4 62.4 60 90 60" fill="none" stroke="#1f2937" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<circle cx="90" cy="60" r="3.5" fill="#1f2937"/><circle cx="230" cy="60" r="3.5" fill="#1f2937"/><circle cx="230" cy="160" r="3.5" fill="#1f2937"/><circle cx="90" cy="160" r="3.5" fill="#1f2937"/>'+
+    '<text x="90" y="48" class="geo-lbl" fill="#1f2937" text-anchor="middle">A</text><text x="230" y="48" class="geo-lbl" fill="#1f2937" text-anchor="middle">B</text><text x="230" y="178" class="geo-lbl" fill="#1f2937" text-anchor="middle">C</text><text x="90" y="178" class="geo-lbl" fill="#1f2937" text-anchor="middle">D</text>'+
+    '<text x="160" y="56" class="geo-len" fill="#059669" text-anchor="middle">60米</text>'+
+    '<text x="28" y="114" class="geo-len" fill="#059669" text-anchor="middle">50米</text>'+
+    '</svg>';
+}
+function drawFixedTrackStepSvg(){
+  return '<svg viewBox="0 0 320 240" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">'+
+    '<line x1="70" y1="72" x2="250" y2="72" stroke="#1f2937" stroke-width="2.5" stroke-linecap="round"/>'+
+    '<text x="160" y="68" class="geo-len" fill="#059669" text-anchor="middle">60米</text>'+
+    '<circle cx="160" cy="135" r="48" fill="none" stroke="#1f2937" stroke-width="2.5"/>'+
+    '<text x="160" y="140" class="geo-len" fill="#059669" text-anchor="middle">50米</text>'+
+    '<line x1="70" y1="205" x2="250" y2="205" stroke="#1f2937" stroke-width="2.5" stroke-linecap="round"/>'+
+    '<text x="160" y="228" class="geo-txt" fill="#1f2937" text-anchor="middle">两个半圆合成一个圆</text>'+
+    '</svg>';
+}
 function isTrackProblemData(data){
   const text=JSON.stringify(data||'');
   return /跑道|半圆|直道|长边|圆周长|一圈/.test(text) && /60|50|长方形|直径|两条/.test(text);
 }
 function fixedTrackMainDiagram(){
-  return {"w":320,"h":220,"els":[
-    {"t":"seg","x1":90,"y1":60,"x2":230,"y2":60},
-    {"t":"seg","x1":90,"y1":160,"x2":230,"y2":160},
-    {"t":"arc","cx":90,"cy":110,"r":50,"a0":90,"a1":270},
-    {"t":"arc","cx":230,"cy":110,"r":50,"a0":-90,"a1":90},
-    {"t":"pt","x":90,"y":60,"label":"A"},
-    {"t":"pt","x":230,"y":60,"label":"B"},
-    {"t":"pt","x":230,"y":160,"label":"C"},
-    {"t":"pt","x":90,"y":160,"label":"D"},
-    {"t":"len","x1":110,"y1":60,"x2":210,"y2":60,"text":"60米"},
-    {"t":"len","x1":90,"y1":60,"x2":90,"y2":160,"text":"50米"}
-  ],"aux":[]};
+  return {"type":"track-main"};
 }
 function fixedTrackStepDiagram(){
-  return {"w":320,"h":240,"els":[
-    {"t":"seg","x1":70,"y1":70,"x2":250,"y2":70},
-    {"t":"len","x1":120,"y1":70,"x2":200,"y2":70,"text":"60米"},
-    {"t":"circle","cx":160,"cy":135,"r":45},
-    {"t":"txt","x":160,"y":140,"text":"50米"},
-    {"t":"seg","x1":70,"y1":200,"x2":250,"y2":200},
-    {"t":"txt","x":160,"y":225,"text":"两个半圆合成一个圆"}
-  ],"aux":[]};
+  return {"type":"track-step"};
 }
 function fixTrackGeometryData(data){
   if(!data || !isTrackProblemData(data)) return data;
@@ -2608,7 +2611,7 @@ function renderGeoScanPreview(scan){
   if(Array.isArray(scan.known_conditions)&&scan.known_conditions.length) h+='<div class="wp-h">已知条件</div><ul>'+scan.known_conditions.map(x=>'<li>'+escHtml(x)+'</li>').join('')+'</ul>';
   if(scan.ask) h+='<div class="wp-h">所求问题</div><div class="wp-p">'+escHtml(scan.ask)+'</div>';
   d.innerHTML=h;
-  if(scan.diagram && Array.isArray(scan.diagram.els) && scan.diagram.els.length){
+  if(scan.diagram && (scan.diagram.type || (Array.isArray(scan.diagram.els) && scan.diagram.els.length))){
     d.insertAdjacentHTML('beforeend','<div class="geo-card">'+drawGeometry(scan.diagram)+'</div>');
   }
   if(Array.isArray(scan.notes)&&scan.notes.length){
