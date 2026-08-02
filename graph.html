@@ -125,7 +125,6 @@
   .chat-quick{display:flex;gap:6px;padding:0 12px 6px;flex-wrap:wrap}
   .chat-quick button{background:#0f172a;border:1px solid var(--line);color:#cbd5e1;border-radius:12px;padding:4px 10px;font-size:12px;cursor:pointer}
   .chat-quick button:hover{border-color:#64748b}
-  .scan-status{font-size:12px;line-height:1.5;color:#fbbf24;background:#0f172a;border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:0 12px 6px;white-space:pre-wrap;word-break:break-word}
   .chat-in{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--line);align-items:flex-end}
   .chat-in textarea{flex:1;resize:none;background:#0f172a;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:13px;font-family:inherit;height:44px;max-height:120px;line-height:1.4}
   .chat-in button{background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:0 14px;height:44px;cursor:pointer;font-size:13px}
@@ -276,19 +275,16 @@
     <button data-q="把当前知识点和前置来路串起来讲一遍">🔗 串联讲解</button>
     <button id="chatWP">📊 应用题线段图</button>
     <button id="chatGeo">📐 几何</button>
-    <button id="chatScan">📷 拍照/扫描</button>
     <button data-q="清空对话">🗑 清空</button>
   </div>
-  <div id="chatScanStatus" class="scan-status" style="display:none"></div>
-  <input type="file" id="chatScanFile" accept="image/*" capture="environment" style="display:none">
   <div class="chat-in">
-    <textarea id="chatInput" placeholder="让它出练习题，或哪里不懂就直接问…（也能📷拍照/扫描题目，或用语输入法的语音说）"></textarea>
+    <textarea id="chatInput" placeholder="让它出练习题，或哪里不懂就直接问…（也可用语输入法的语音说）"></textarea>
     <button id="chatSend">发送</button>
   </div>
   <div class="chat-set" id="chatSet">
     <label>API 地址（OpenAI 兼容，已预填 Agnes AI）</label>
     <input id="setEndpoint" value="https://apihub.agnes-ai.com/v1/chat/completions">
-    <label>模型名（已预填 Agnes 文本模型）</label>
+    <label>模型名</label>
     <input id="setModel" value="agnes-2.0-flash">
     <label>API Key（仅存本地浏览器，不会上传；Agnes 可免费领）</label>
     <input id="setKey" type="password" placeholder="在 platform.agnes-ai.com 创建 Key">
@@ -863,7 +859,7 @@ document.getElementById('setSave').onclick=()=>{
 // 快捷指令
 document.getElementById('chatQuick').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
-  if(b.id==='chatWP' || b.id==='chatGeo' || b.id==='chatScan') return;
+  if(b.id==='chatWP' || b.id==='chatGeo') return;
   if(b.dataset.q==='清空对话'){ chatHistory=[]; chatMsgs.innerHTML=''; addMsg('system','对话已清空。'); return; }
   sendChat(b.dataset.q, true);
 });
@@ -903,15 +899,56 @@ document.getElementById('chatCopy').onclick=copyPromptNow;
 let wpMode=false;
 let geoMode=false;
 function geoSystemPrompt(){
-  return `你是一位擅长用「画图 + 辅助线 + 变换（平移/旋转/切割/拼补）」帮小学生拆解几何题的数学老师。
-当用户发来一道几何题（面积、周长、图形变换等）时，请：
+  return `你是一位擅长用「小学几何画图解题 Skill」帮小学生拆解几何题的数学老师。
+适用范围覆盖小学阶段所有常见几何内容：线段/直线/射线/角、长方形、正方形、三角形、平行四边形、梯形、圆、半圆、扇形、组合图形、平移、旋转、轴对称、长方体、正方体、圆柱、圆锥、观察物体、三视图、展开图、跑道、篱笆围栏、铺地砖、阴影面积、切割拼补。
+
+总原则：
+- 先判断图形类型，再画图，不要一开始套公式。
+- 图形必须服务于解题：保留已知量、未知量、关键关系和必要辅助线。
+- 标注要简洁：已知量写数值，未知量用 ?，单位保持原题单位。
+- 辅助线必须有理由：用于割、补、拼、移、转、展开、投影、等底等高、转化为熟悉图形。
+- 如果用户输入里包含“图形结构 JSON”，请优先沿用这个 JSON 的图形关系、顶点、尺寸和文字标注来生成最终 diagram；只在需要辅助线或变换步骤时补充 aux/steps，不要无故改成另一种图。
+
+题型判断与画图规则：
+- 长方形/正方形：标长宽或边长；周长强调围一圈，面积强调铺满一面。
+- 三角形：面积题必须标底和对应高，高要垂直，不要只标三条边。
+- 平行四边形：标底和对应高，常用辅助线割补成长方形；斜边不是高。
+- 梯形：标上底、下底和高；高是两条平行底之间的垂直距离。
+- 圆/半圆/扇形：标圆心、半径或直径；半圆要判断是否包含直径；两个半圆合起来是一个圆。
+- 组合图形：先画整体，再用辅助线分割或添补；判断阴影是相加还是整体减空白。
+- 图形运动：平移保持形状大小方向不变；旋转标中心、方向、角度；轴对称标对称轴和对应点。
+- 长方体/正方体：用斜线或虚线画立体示意，标长宽高或棱长；表面积可画展开图。
+- 圆柱：画上下底面和侧面；展开图是 1 个长方形 + 2 个圆，长方形的长是底面周长，宽是高。
+- 圆锥：标底面半径/直径和高；高是顶点到底面圆心的垂直距离，不是母线。
+- 跑道题：画体育场形跑道，两条直道是长方形的长，两个半圆合成一个圆，圆的直径等于长方形的宽；一圈 = 长×2 + π×宽。注意跑道边界只有“上直道、下直道、左半圆弧、右半圆弧”，不要把长方形左右两条宽画成实线跑道边界；宽只能画成虚线直径辅助线或长度标注。
+
+常用公式检查：
+- 长方形周长=(长+宽)×2，面积=长×宽；正方形周长=边长×4，面积=边长×边长。
+- 三角形面积=底×高÷2；平行四边形面积=底×高；梯形面积=(上底+下底)×高÷2。
+- 圆周长=πd=2πr，圆面积=πr²；半圆弧长=πr，半圆周长=πr+2r；圆环面积=πR²-πr²。
+- 长方体棱长总和=(长+宽+高)×4，表面积=(长×宽+长×高+宽×高)×2，体积=长×宽×高。
+- 正方体棱长总和=边长×12，表面积=边长×边长×6，体积=边长×边长×边长。
+- 圆柱侧面积=底面周长×高，表面积=侧面积+两个底面积，体积=底面积×高。
+- 圆锥体积=底面积×高÷3。
+
+解题前必须检查：
+- 求的是长度、周长、面积、表面积、体积还是容积。
+- 单位是否统一。
+- 图中给的是半径还是直径。
+- 高是否是对应高。
+- 半圆是否包含直径边。
+- 组合图形是相加还是相减。
+- 立体图形是求一个面、几个面、全部表面积，还是体积。
+- 图形运动后面积/周长是否保持不变。
+
+当用户发来一道几何题时，请：
 1. 先用 1~2 句鼓励、引导的话开头（自然语言，不要 Markdown）。
 2. 然后输出一个 \`\`\`json 代码块，结构必须严格如下：
 {
   "analysis": {
     "已知条件": ["条件1","条件2"],
     "所求问题": "求什么",
-    "思路": ["步骤1","步骤2"]
+    "思路": ["先判断图形类型","再说明画图和转化方法","最后列式计算"]
   },
   "diagram": { "w":320,"h":220,"els":[ ... ], "aux":[ ... ] },
   "steps": [
@@ -933,11 +970,32 @@ diagram 坐标系：左上为原点，x 向右、y 向下；w/h 自定（约 320
 aux 为辅助线数组（蓝色虚线，写法同 els 的 seg/ray）。
 注意：
 - 坐标要真实能拼出图形，数量少用大坐标让图清晰；只在 diagram 里画图，开头引导语用自然语言。
+- 平面图形要标关键边、底、高、半径、直径、角度、问号；立体图形可用 poly/seg/虚线画课本风格示意或展开图。
+- 跑道题的 diagram 必须画成体育场形：上、下两条 seg 表示长边；左、右两个 arc 表示半圆弧，弧线要向外鼓；宽/直径用 dashed 辅助线或 len 标注，不要画成实线边界。可参考：
+  {"w":320,"h":220,"els":[
+    {"t":"seg","x1":90,"y1":60,"x2":230,"y2":60},
+    {"t":"seg","x1":90,"y1":160,"x2":230,"y2":160},
+    {"t":"arc","cx":90,"cy":110,"r":50,"a0":270,"a1":90},
+    {"t":"arc","cx":230,"cy":110,"r":50,"a0":-90,"a1":90},
+    {"t":"len","x1":90,"y1":60,"x2":230,"y2":60,"text":"60米"},
+    {"t":"len","x1":230,"y1":60,"x2":230,"y2":160,"text":"50米"},
+    {"t":"txt","x":160,"y":190,"text":"两个半圆合成一个圆"}
+  ],"aux":[{"t":"seg","x1":230,"y1":60,"x2":230,"y2":160,"dashed":true}]}
+- 跑道题如果需要 steps，只保留一个“拼半圆成整圆”的步骤即可；这一步的 diagram 要采用用户认可的 13:02 版样式：一个独立圆放在中间，上下各画一条长直道作对照，让用户直观看到“一圈 = 两条直道 + 一个圆”。上方直道标 60米，圆内标 50米；直道不要穿过圆心，也不要画成跑道边界。可参考：
+  {"w":320,"h":240,"els":[
+    {"t":"seg","x1":70,"y1":70,"x2":250,"y2":70},
+    {"t":"len","x1":120,"y1":70,"x2":200,"y2":70,"text":"60米"},
+    {"t":"circle","cx":160,"cy":135,"r":45},
+    {"t":"txt","x":160,"y":140,"text":"50米"},
+    {"t":"seg","x1":70,"y1":200,"x2":250,"y2":200},
+    {"t":"txt","x":160,"y":225,"text":"两个半圆合成一个圆"}
+  ],"aux":[]}
 - steps 每步给变换后的 diagram：平移→整体偏移坐标；旋转→旋转坐标（以某点为中心）；切割→画切开后两部分。题目用不到的变换就省略该步（如只加辅助线、只切割），steps 留真正用到的 1~2 步即可。
-- 不要加 Markdown 标题或列表符号。`;
+- 不要加 Markdown 标题或列表符号。
+- 最终自然语言中要带完整单位，避免小学常见错误：直径半径混淆、斜边当高、三角形/梯形忘除以2、半圆周长漏直径、跑道两个半圆误算成两个圆、圆锥体积忘除以3。`;
 }
 function buildGeoPrompt(text){
-  return `@skill:beishida-math-knowledge\n（几何·画图+变换模式）\n请对下面这道几何题做综合分析，并画出图形（含辅助线）与分步变换图：\n\n${text}\n\n（要求：先用 1~2 句引导语，再输出 \`\`\`json 块，含 analysis / diagram / steps；diagram 用坐标图元描述，辅助线放 aux，变换每步一个 diagram。）`;
+  return `@skill:primary-geometry-diagram-solver\n（小学几何·画图解题模式）\n请对下面这道几何题做综合分析：先判断是平面图形、立体图形、图形运动、组合图形还是典型题型；再画出课本风格图形（含必要辅助线/展开图/变换图）；最后分步列式解答。\n\n${text}\n\n（要求：先用 1~2 句引导语，再输出 \`\`\`json 块，含 analysis / diagram / steps；diagram 用坐标图元描述，辅助线放 aux，变换每步一个 diagram。必须检查单位、半径/直径、对应高、半圆是否含直径、组合图形加减关系、立体图形表面积/体积区别。若是跑道题，主图必须画成体育场形：两条长边 + 左右两个向外鼓出的半圆弧，不能把长方形左右两条宽画成实线跑道边界；步骤图若展示“拼半圆成整圆”，按用户认可的13:02版样式画：一个独立圆放中间，上下各一条长直道作对照，上方直道标60米，圆内标50米。）`;
 }
 function parseGeo(ans){
   const m=ans.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -947,6 +1005,8 @@ function parseGeo(ans){
 }
 function drawGeometry(spec){
   if(!spec) return '';
+  if(spec.type==='track-main') return drawFixedTrackMainSvg();
+  if(spec.type==='track-step') return drawFixedTrackStepSvg();
   const W=spec.w||320, H=spec.h||220;
   const els=(spec.els||[]).concat((spec.aux||[]).map(a=>Object.assign({dashed:true,_aux:true},a)));
   const out=[]; const escT=s=>escHtml(s==null?'':String(s));
@@ -992,8 +1052,48 @@ function drawGeometry(spec){
   });
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">'+out.join('')+'</svg>';
 }
+function drawFixedTrackMainSvg(){
+  return '<svg viewBox="0 0 320 220" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">'+
+    '<path d="M90 60 H230 C257.6 60 280 82.4 280 110 C280 137.6 257.6 160 230 160 H90 C62.4 160 40 137.6 40 110 C40 82.4 62.4 60 90 60" fill="none" stroke="#1f2937" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<circle cx="90" cy="60" r="3.5" fill="#1f2937"/><circle cx="230" cy="60" r="3.5" fill="#1f2937"/><circle cx="230" cy="160" r="3.5" fill="#1f2937"/><circle cx="90" cy="160" r="3.5" fill="#1f2937"/>'+
+    '<text x="90" y="48" class="geo-lbl" fill="#1f2937" text-anchor="middle">A</text><text x="230" y="48" class="geo-lbl" fill="#1f2937" text-anchor="middle">B</text><text x="230" y="178" class="geo-lbl" fill="#1f2937" text-anchor="middle">C</text><text x="90" y="178" class="geo-lbl" fill="#1f2937" text-anchor="middle">D</text>'+
+    '<text x="160" y="56" class="geo-len" fill="#059669" text-anchor="middle">60米</text>'+
+    '<text x="28" y="114" class="geo-len" fill="#059669" text-anchor="middle">50米</text>'+
+    '</svg>';
+}
+function drawFixedTrackStepSvg(){
+  return '<svg viewBox="0 0 320 240" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">'+
+    '<line x1="70" y1="72" x2="250" y2="72" stroke="#1f2937" stroke-width="2.5" stroke-linecap="round"/>'+
+    '<text x="160" y="68" class="geo-len" fill="#059669" text-anchor="middle">60米</text>'+
+    '<circle cx="160" cy="135" r="48" fill="none" stroke="#1f2937" stroke-width="2.5"/>'+
+    '<text x="160" y="140" class="geo-len" fill="#059669" text-anchor="middle">50米</text>'+
+    '<line x1="70" y1="205" x2="250" y2="205" stroke="#1f2937" stroke-width="2.5" stroke-linecap="round"/>'+
+    '<text x="160" y="228" class="geo-txt" fill="#1f2937" text-anchor="middle">两个半圆合成一个圆</text>'+
+    '</svg>';
+}
+function isTrackProblemData(data){
+  const text=JSON.stringify(data||'');
+  return /跑道|半圆|直道|长边|圆周长|一圈/.test(text) && /60|50|长方形|直径|两条/.test(text);
+}
+function fixedTrackMainDiagram(){
+  return {"type":"track-main"};
+}
+function fixedTrackStepDiagram(){
+  return {"type":"track-step"};
+}
+function fixTrackGeometryData(data){
+  if(!data || !isTrackProblemData(data)) return data;
+  data.diagram=fixedTrackMainDiagram();
+  data.steps=[{
+    title:'拼半圆成整圆',
+    desc:'把左右两个半圆拼在一起，就是一个直径50米的圆；跑道一圈 = 两条长边 + 这个圆的周长。',
+    diagram:fixedTrackStepDiagram()
+  }].concat((data.steps||[]).filter(s=>!/(半圆|整圆|圆周长|直道|跑道)/.test(JSON.stringify(s||''))).slice(0,1));
+  return data;
+}
 function renderGeometry(ans){
   const {intro,data}=parseGeo(ans);
+  if(data) fixTrackGeometryData(data);
   const d=document.createElement('div'); d.className='msg a';
   if(intro){ const p=document.createElement('div'); p.style.marginBottom='4px'; p.innerHTML=renderMd(intro); d.appendChild(p); }
   if(data && data.analysis){
@@ -2416,81 +2516,8 @@ document.getElementById('chatGeo').onclick=function(){
   geoMode=!geoMode;
   wpMode=false; document.getElementById('chatWP').classList.toggle('active', false);
   this.classList.toggle('active', geoMode);
-  chatInput.placeholder = geoMode ? '粘贴/说出一道几何题，例如：把一个长8cm、宽5cm的长方形向右平移3格，面积变了吗？ 或：平行四边形底10高6，求面积' : '让它出练习题，或哪里不懂就直接问…（也可用语输入法的语音说）';
-  if(geoMode){ addMsg('system','📐 几何模式已开启：把题粘到输入框，点发送即可看到「综合分析 + 画图（含辅助线）+ 分步变换（平移/旋转/切割）」。可语音输入，不用先选知识点。'); }
-};
-
-/* ===================== 拍照/扫描输入：浏览器本地 OCR（PaddleOCR.js，无需后端，GitHub Pages 可用） ===================== */
-let _ocr=null, _ocrLoading=null;
-const chatScanStatus=document.getElementById('chatScanStatus');
-function setChatScanStatus(t){ chatScanStatus.textContent=t||''; chatScanStatus.style.display=t? 'block':'none'; }
-async function getOCR(){
-  if(_ocr) return _ocr;
-  if(_ocrLoading) return _ocrLoading;            // 防止重复初始化
-  _ocrLoading=new Promise(async(resolve,reject)=>{
-    try{
-      setChatScanStatus('⏳ 加载识别模型…（首次约几十 MB，请稍候，仅此一次）');
-      // 从 jsDelivr（国内可直连）动态加载官方 PaddleOCR.js；wasm 也走 jsDelivr
-      const mod=await import('https://cdn.jsdelivr.net/npm/@paddleocr/paddleocr-js/+esm');
-      _ocr=await mod.PaddleOCR.create({
-        lang:'ch', ocrVersion:'PP-OCRv5',
-        ortOptions:{ backend:'wasm', wasmPaths:'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/' }
-      });
-      setChatScanStatus('✅ 模型就绪');
-      setTimeout(()=>setChatScanStatus(''), 1200);
-      resolve(_ocr);
-    }catch(e){ _ocrLoading=null; setChatScanStatus('❌ 模型加载失败：'+(e.message||e)+'（若模型下载慢，可重试；或改用文本/粘贴/语音输入）'); reject(e); }
-  });
-  return _ocrLoading;
-}
-async function doChatScan(file){
-  try{
-    const ocr=await getOCR();
-    setChatScanStatus('🔍 识别中…');
-    const res=await ocr.predict(file);
-    const items=(res&&res[0]&&res[0].items)||[];
-    if(!items.length){ setChatScanStatus('⚠️ 没识别到文字，换张清晰、摆正的图再试'); return; }
-    // 按位置排序（上→下，左→右），避免乱序
-    items.sort((a,b)=>{
-      const ay=(a.poly?.[0]?.[1]||0)+(a.poly?.[2]?.[1]||0)/2;
-      const by=(b.poly?.[0]?.[1]||0)+(b.poly?.[2]?.[1]||0)/2;
-      if(Math.abs(ay-by)>15) return ay-by; // 不同行：按 y 排
-      const ax=(a.poly?.[0]?.[0]||0), bx=(b.poly?.[0]?.[0]||0);
-      return ax-bx; // 同行：按 x 排
-    });
-    const text=items.map(it=>it.text).join('\n').replace(/[ \t]+/g,' ').trim();
-    if(!text){ setChatScanStatus('⚠️ 没识别到文字，换张清晰、摆正的图再试'); return; }
-
-    // 几何模式：OCR 只能识别文字，几何图形需用户补充
-    if(geoMode){
-      // 尝试从文字中提取关键几何信息
-      const hasShape = /三角形|长方形|正方形|平行四边形|梯形|圆|圆柱|圆锥|长方体|正方体/.test(text);
-      const hasMeasure = /\d+\s*(cm|厘米|mm|毫米|m|米|dm|分米|km|千米|°|度|cm²|平方|㎡)/i.test(text);
-      let msg='✅ 已识别文字：\n'+text;
-      if(!hasShape || !hasMeasure){
-        msg+='\n\n⚠️ 提示：拍照识别只能提取文字，几何图形（线段、角度、形状）需要你补充描述。';
-        msg+='\n请在文字后面补充图形信息，例如：';
-        if(!hasShape) msg+='\n  · 形状：如「三角形」「长方形8cm×5cm」「平行四边形底10高6」';
-        if(!hasMeasure) msg+='\n  · 尺寸：如「底8cm」「高5cm」「边长6cm」「角90°」';
-        msg+='\n\n完整示例：长方形长8cm宽5cm，求面积';
-      }
-      chatInput.value=msg;
-      chatInput.focus();
-      setChatScanStatus('✅ 已识别并填入，请补充图形信息后点「发送」');
-    } else {
-      // 应用题/普通模式：直接填入
-      chatInput.value=text;
-      chatInput.focus();
-      setChatScanStatus('✅ 已识别并填入，请核对文字无误后点「发送」');
-    }
-  }catch(e){ setChatScanStatus('❌ 识别失败：'+(e.message||e)); }
-}
-document.getElementById('chatScan').onclick=()=>document.getElementById('chatScanFile').click();
-document.getElementById('chatScanFile').onchange=async(e)=>{
-  const f=e.target.files&&e.target.files[0];
-  if(!f) return;
-  await doChatScan(f);
-  e.target.value='';   // 允许重复选同一张
+  chatInput.placeholder = geoMode ? '粘贴/说出一道几何题：平面图形、立体图形、图形运动、组合图形、跑道、展开图都可以。例如：跑道由两个半圆和两条60米直道组成，宽50米，跑两圈多少米？' : '让它出练习题，或哪里不懂就直接问…（也可用语输入法的语音说）';
+  if(geoMode){ addMsg('system','📐 几何模式已开启：已接入「小学几何画图解题 Skill」，覆盖平面图形、立体图形、图形运动、组合图形、跑道/围栏/阴影/展开图等。把题粘进来，即可看到「题型判断 + 课本风格图 + 辅助线/展开图/变换图 + 分步列式」。'); }
 };
 
 async function sendChat(presetText, asNormal){
