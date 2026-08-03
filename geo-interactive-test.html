@@ -343,11 +343,11 @@ class Renderer {
     ctx.lineWidth = opts.width || 2.8;
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.beginPath();
-    ctx.moveTo(ax, ay);
-    ctx.lineTo(bx, by);
-    ctx.arc(bx, midYR, r, -Math.PI/2, Math.PI/2, false);
-    ctx.lineTo(dx, dy);
-    ctx.arc(dx, midYL, r, Math.PI/2, 3*Math.PI/2, false);
+    ctx.moveTo(ax, ay);                                    // A（左下）
+    ctx.lineTo(bx, by);                                    // 底部直道 A→B
+    ctx.arc(bx, midYR, r, Math.PI/2, -Math.PI/2, true);   // 右半圆 B→C（向右鼓出）
+    ctx.lineTo(dx, dy);                                    // 顶部直道 C→D
+    ctx.arc(dx, midYL, r, -Math.PI/2, Math.PI/2, true);   // 左半圆 D→A（向左鼓出）
     ctx.stroke();
     // 半圆虚线辅助（宽/直径）
     ctx.setLineDash([5, 4]);
