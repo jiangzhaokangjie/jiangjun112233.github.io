@@ -741,15 +741,15 @@ PROBLEMS['circle'] = {
     s.addSeg('O','R', {label:'半径r', labelColor:'#059669', color:'#059669'});
     s.addMeasurement({type:'radius', center:'O', point:'R', label:'半径 r', unit:'m', cls:'green'});
     s.addMeasurement({type:'custom', label:'直径 d', calc: sc => sc.len('O','R')*2, unit:'m', cls:'green'});
-    s.addMeasurement({type:'custom', label:'周长 C', calc: sc => 2*Math.PI*sc.len('O','R'), unit:'m', cls:'yellow'});
-    s.addMeasurement({type:'custom', label:'面积 S', calc: sc => Math.PI*sc.len('O','R')**2, unit:'m²', cls:'brand'});
+    s.addMeasurement({type:'custom', label:'周长 C', calc: sc => 2*3.14*sc.len('O','R'), unit:'m', cls:'yellow'});
+    s.addMeasurement({type:'custom', label:'面积 S', calc: sc => 3.14*sc.len('O','R')**2, unit:'m²', cls:'brand'});
     s.addFormula(sc => {
       const r = sc.len('O','R');
-      return `周长 = 2πr = 2 × 3.14 × ${r.toFixed(2)} = <span class="result">${(2*Math.PI*r).toFixed(2)} m</span>`;
+      return `周长 = 2πr = 2 × 3.14 × ${r.toFixed(2)} = <span class="result">${(2*3.14*r).toFixed(2)} m</span>`;
     });
     s.addFormula(sc => {
       const r = sc.len('O','R');
-      return `面积 = πr² = 3.14 × ${r.toFixed(2)}² = <span class="result">${(Math.PI*r*r).toFixed(2)} m²</span>`;
+      return `面积 = πr² = 3.14 × ${r.toFixed(2)}² = <span class="result">${(3.14*r*r).toFixed(2)} m²</span>`;
     });
     s.tips = '拖动 R 点改变半径。半径越大，周长和面积都变大。注意：面积是 r 的平方增长，比周长增长更快！';
     return s;
@@ -816,20 +816,20 @@ PROBLEMS['track'] = {
     s.addMeasurement({type:'length', p1:'B', p2:'C', label:'宽(直径)', unit:'m', cls:'green'});
     s.addMeasurement({type:'custom', label:'一圈长度', calc: sc => {
       const len = sc.len('A','B'), wid = sc.len('B','C');
-      return len * 2 + Math.PI * wid;
+      return len * 2 + 3.14 * wid;
     }, unit:'m', cls:'yellow'});
     s.addMeasurement({type:'custom', label:'两圈长度', calc: sc => {
       const len = sc.len('A','B'), wid = sc.len('B','C');
-      return (len * 2 + Math.PI * wid) * 2;
+      return (len * 2 + 3.14 * wid) * 2;
     }, unit:'m', cls:'brand'});
     s.addFormula(sc => {
       const len = sc.len('A','B'), wid = sc.len('B','C');
-      const lap = len*2 + Math.PI*wid;
+      const lap = len*2 + 3.14*wid;
       return `一圈 = 长×2 + π×宽 = ${len.toFixed(0)}×2 + 3.14×${wid.toFixed(0)} = <span class="result">${lap.toFixed(2)} m</span>`;
     });
     s.addFormula(sc => {
       const len = sc.len('A','B'), wid = sc.len('B','C');
-      const lap = len*2 + Math.PI*wid;
+      const lap = len*2 + 3.14*wid;
       return `两圈 = 一圈×2 = ${lap.toFixed(2)}×2 = <span class="result">${(lap*2).toFixed(2)} m</span>`;
     });
     s.tips = '跑道 = 两条直道 + 两个半圆（合成一个整圆）。一圈 = 长×2 + π×宽。拖动 A 或 C 改变跑道大小，看一圈和两圈长度怎么变。';
